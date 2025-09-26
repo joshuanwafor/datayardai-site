@@ -40,7 +40,6 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
 
   // Simulate 24h change based on spread (for demo purposes)
   const getSimulatedChange = (market: MarketData) => {
-    const spreadPercent = market.midPrice > 0 ? ((market.bestAsk - market.bestBid) / market.midPrice) * 100 : 0;
     // Simulate change between -5% to +5% based on spread
     const baseChange = (Math.random() - 0.5) * 10;
     return baseChange;
@@ -55,7 +54,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
 
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
-    let filtered = marketData.filter(market =>
+    const filtered = marketData.filter(market =>
       market.pair.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
