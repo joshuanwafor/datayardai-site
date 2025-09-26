@@ -15,6 +15,7 @@ import { PriceChart } from './components/PriceChart';
 export default function Home() {
   const { frame, isConnected, error, reconnectAttempts, reconnect, startStream } = useMarketStream();
   const marketData = useMarketData(frame?.data.all_exchange_prices || {});
+  const analytics = useMarketAnalytics(marketData, frame?.data.opportunities || []);
   const [selectedPair, setSelectedPair] = useState<string | undefined>();
 
   const selectedMarketData = selectedPair 
@@ -25,13 +26,15 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Crypto Market Data
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Real-time market data and arbitrage opportunities across exchanges
-          </p>
-          <div className="mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Crypto Market Dashboard
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Real-time market data and arbitrage opportunities across exchanges
+              </p>
+            </div>
             <ConnectionStatus
               isConnected={isConnected}
               error={error}
@@ -42,19 +45,44 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="lg:col-span-1">
+        {/* Market Overview */}
+        <MarketOverview {...analytics} />
+
+        {/* Arbitrage Heatmap */}
+        <div className="mb-8">
+          <ArbitrageHeatmap opportunities={frame?.data.opportunities || []} />
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Market Ticker */}
+          <div className="lg:col-span-2">
             <MarketTicker
               marketData={marketData}
               selectedPair={selectedPair}
               onPairSelect={setSelectedPair}
             />
           </div>
+          
+          {/* Pair Details */}
           <div className="lg:col-span-1">
             <PairDetails marketData={selectedMarketData} />
           </div>
         </div>
 
+        {/* Price Chart for Selected Pair */}
+        {selectedMarketData && (
+          <div className="mb-8">
+            <PriceChart
+              pair={selectedMarketData.pair}
+              priceHistory={[]} // Would need historical data
+              currentPrice={selectedMarketData.midPrice}
+              previousPrice={selectedMarketData.midPrice * 0.98} // Mock previous price
+            />
+          </div>
+        )}
+
+        {/* Arbitrage Opportunities */}
         <div className="mb-8">
           <ArbitrageOpportunities
             opportunities={frame?.data.opportunities || []}
