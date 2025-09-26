@@ -1,7 +1,7 @@
 'use client';
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, Clock, DollarSign } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 
 interface PriceChartProps {
   pair: string;

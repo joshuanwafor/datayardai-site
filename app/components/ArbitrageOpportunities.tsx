@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Opportunity } from '../types/streaming';
-import { TrendingUp, TrendingDown, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Filter, Search } from 'lucide-react';
+import { TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Filter, Search } from 'lucide-react';
 
 interface ArbitrageOpportunitiesProps {
   opportunities: Opportunity[];
@@ -43,7 +43,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
   // Filter and sort opportunities
   const filteredAndSortedOpportunities = useMemo(() => {
-    let filtered = opportunities.filter(opp => 
+    const filtered = opportunities.filter(opp => 
       opp.pair.toLowerCase().includes(filterPair.toLowerCase())
     );
 

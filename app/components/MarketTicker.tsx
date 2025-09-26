@@ -39,7 +39,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
   };
 
   // Simulate 24h change based on spread (for demo purposes)
-  const getSimulatedChange = (market: MarketData) => {
+  const getSimulatedChange = () => {
     // Simulate change between -5% to +5% based on spread
     const baseChange = (Math.random() - 0.5) * 10;
     return baseChange;
@@ -72,8 +72,8 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
           bValue = b.midPrice;
           break;
         case 'change':
-          aValue = getSimulatedChange(a);
-          bValue = getSimulatedChange(b);
+          aValue = getSimulatedChange();
+          bValue = getSimulatedChange();
           break;
         case 'volume':
           aValue = getSimulatedVolume(a);
@@ -211,7 +211,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
               const spread = market.bestAsk - market.bestBid;
               const spreadPercent = market.midPrice > 0 ? (spread / market.midPrice) * 100 : 0;
               const isSelected = selectedPair === market.pair;
-              const change24h = getSimulatedChange(market);
+              const change24h = getSimulatedChange();
               const volume24h = getSimulatedVolume(market);
               const isPositive = change24h >= 0;
               

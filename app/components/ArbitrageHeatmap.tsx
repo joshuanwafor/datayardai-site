@@ -2,20 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import { Opportunity } from '../types/streaming';
-import { TrendingUp, TrendingDown, DollarSign, Activity, Target } from 'lucide-react';
+import { TrendingUp, DollarSign, Activity, Target } from 'lucide-react';
 
 interface ArbitrageHeatmapProps {
   opportunities: Opportunity[];
 }
 
-interface PairData {
-  pair: string;
-  maxProfit: number;
-  avgProfit: number;
-  count: number;
-  totalProfit: number;
-  bestOpportunity: Opportunity;
-}
 
 export function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
   const [selectedPair, setSelectedPair] = useState<string | null>(null);

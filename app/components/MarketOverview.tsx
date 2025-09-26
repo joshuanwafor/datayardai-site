@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingUp, TrendingDown, Activity, DollarSign, BarChart3, Target, ArrowUp, ArrowDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, BarChart3, Target, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface MarketOverviewProps {
   totalPairs: number;

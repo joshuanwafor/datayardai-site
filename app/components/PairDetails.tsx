@@ -1,7 +1,7 @@
 'use client';
 
 import { MarketData } from '../types/streaming';
-import { TrendingUp, TrendingDown, Activity, DollarSign, BarChart3, ArrowUp, ArrowDown } from 'lucide-react';
+import { Activity, DollarSign, BarChart3, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface PairDetailsProps {
   marketData: MarketData | null;
