@@ -13,7 +13,7 @@ import { ArbitrageHeatmap } from './components/ArbitrageHeatmap';
 import { PriceChart } from './components/PriceChart';
 
 export default function Home() {
-  const { frame, isConnected, error, reconnectAttempts, reconnect, startStream } = useMarketStream();
+  const { frame, isConnected, error, reconnectAttempts, reconnect, startStream, testConnection } = useMarketStream();
   const marketData = useMarketData(frame?.data.all_exchange_prices || {});
   const analytics = useMarketAnalytics(marketData, frame?.data.opportunities || []);
   const [selectedPair, setSelectedPair] = useState<string | undefined>();
@@ -41,6 +41,7 @@ export default function Home() {
               reconnectAttempts={reconnectAttempts}
               onReconnect={reconnect}
               onStartStream={startStream}
+              onTestConnection={testConnection}
             />
           </div>
         </header>

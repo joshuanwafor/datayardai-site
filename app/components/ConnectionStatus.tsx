@@ -6,6 +6,7 @@ interface ConnectionStatusProps {
   reconnectAttempts: number;
   onReconnect: () => void;
   onStartStream?: () => void;
+  onTestConnection?: () => void;
 }
 
 export function ConnectionStatus({ 
@@ -13,7 +14,8 @@ export function ConnectionStatus({
   error, 
   reconnectAttempts, 
   onReconnect,
-  onStartStream
+  onStartStream,
+  onTestConnection
 }: ConnectionStatusProps) {
   return (
     <div className="flex items-center gap-3 p-3 rounded-lg border bg-white dark:bg-gray-800 shadow-sm">
@@ -38,12 +40,22 @@ export function ConnectionStatus({
       
       <div className="flex gap-2">
         {!isConnected && (
-          <button
-            onClick={onReconnect}
-            className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            Reconnect
-          </button>
+          <>
+            <button
+              onClick={onReconnect}
+              className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Reconnect
+            </button>
+            {onTestConnection && (
+              <button
+                onClick={onTestConnection}
+                className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+              >
+                Test
+              </button>
+            )}
+          </>
         )}
         {isConnected && onStartStream && (
           <button

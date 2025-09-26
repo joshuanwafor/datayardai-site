@@ -1,9 +1,13 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
+import { reaction } from 'mobx';
 import { marketDataState } from './useMarketDataState';
 
 export function useMarketStream() {
+  // Force re-renders when MobX state changes
+  const [, forceUpdate] = useState({});
+  const forceRerender = useCallback(() => forceUpdate({}), []);
 
   const connect = useCallback(() => {
     marketDataState.connect();
@@ -21,6 +25,10 @@ export function useMarketStream() {
     marketDataState.startStream();
   }, []);
 
+  const testConnection = useCallback(() => {
+    marketDataState.testConnection();
+  }, []);
+
   useEffect(() => {
     // Only connect on client side
     if (typeof window !== 'undefined') {
@@ -33,6 +41,25 @@ export function useMarketStream() {
     };
   }, [connect, disconnect]);
 
+  // Subscribe to MobX state changes
+  useEffect(() => {
+    const disposer = reaction(
+      () => ({
+        isConnected: marketDataState.isConnected,
+        error: marketDataState.error,
+        reconnectAttempts: marketDataState.reconnectAttempts,
+        frame: marketDataState.frame,
+        socketStatus: marketDataState.socketStatus
+      }),
+      () => {
+        // Force re-render when any of these values change
+        forceRerender();
+      }
+    );
+
+    return disposer;
+  }, [forceRerender]);
+
   return {
     frame: marketDataState.frame,
     isConnected: marketDataState.isConnected,
@@ -40,6 +67,7 @@ export function useMarketStream() {
     reconnectAttempts: marketDataState.reconnectAttempts,
     reconnect,
     disconnect,
-    startStream
+    startStream,
+    testConnection
   };
 }

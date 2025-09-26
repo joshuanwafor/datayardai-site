@@ -30,23 +30,32 @@ class MarketDataState {
   connect(): void {
     const SOCKET_URL = process.env.NEXT_PUBLIC_STREAM_URL || "http://157.230.96.29";
     
+    console.log('Attempting to connect to:', SOCKET_URL);
+    
     this.socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      timeout: 20000,
+      transports: ['polling', 'websocket'], // Try polling first, then websocket
+      timeout: 30000,
       forceNew: true,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
+      autoConnect: true,
     });
 
     this.socket.on('connect', () => {
+      console.log('Socket.IO connected - updating state');
       runInAction(() => {
         this.socketStatus = "connected";
         this.isConnected = true;
         this.error = null;
         this.reconnectAttempts = 0;
       });
-      console.log('Socket.IO connected');
+      console.log('Socket.IO connected - state updated:', {
+        isConnected: this.isConnected,
+        socketStatus: this.socketStatus,
+        error: this.error
+      });
       
       // Start the trading stream
       console.log('Emitting trading/stream event');
@@ -64,10 +73,15 @@ class MarketDataState {
       runInAction(() => {
         this.socketStatus = "connection_error";
         this.isConnected = false;
-        this.error = 'Connection error';
+        this.error = `Connection error: ${error}`;
         this.reconnectAttempts += 1;
       });
       console.error('Socket.IO connection error:', error);
+      console.error('Error details:', {
+        message: error,
+        type: typeof error,
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
     });
 
     this.socket.on('disconnect', (reason: string) => {
@@ -119,7 +133,14 @@ class MarketDataState {
       console.log('Received trading_update:', data);
       runInAction(() => {
         this.frame = data;
+        // Also ensure connection status is updated when we receive data
+        if (!this.isConnected) {
+          this.isConnected = true;
+          this.socketStatus = "connected";
+          this.error = null;
+        }
       });
+      console.log('Frame updated, isConnected:', this.isConnected);
     });
 
     // Listen for trading connection status
@@ -129,7 +150,14 @@ class MarketDataState {
       if (data && typeof data === 'object' && data !== null && 'data' in data) {
         runInAction(() => {
           this.frame = data as StreamFrame;
+          // Also ensure connection status is updated when we receive data
+          if (!this.isConnected) {
+            this.isConnected = true;
+            this.socketStatus = "connected";
+            this.error = null;
+          }
         });
+        console.log('Trading connection status updated, isConnected:', this.isConnected);
       }
     });
 
@@ -141,6 +169,16 @@ class MarketDataState {
         console.log('Full trading_connection_status data:', JSON.stringify(args, null, 2));
       }
     });
+
+    // Add connection timeout handling
+    setTimeout(() => {
+      if (!this.isConnected) {
+        console.warn('Connection timeout - socket still not connected after 30 seconds');
+        runInAction(() => {
+          this.error = 'Connection timeout - please check server status';
+        });
+      }
+    }, 30000);
   }
 
   disconnect(): void {
@@ -188,6 +226,18 @@ class MarketDataState {
       this.socket.on(event, callback);
     } else {
       console.log('No socket connection');
+    }
+  }
+
+  // Manual connection test
+  testConnection(): void {
+    console.log('Testing connection...');
+    if (this.socket) {
+      console.log('Socket exists, connected:', this.socket.connected);
+      console.log('Socket ID:', this.socket.id);
+      console.log('Socket transport:', this.socket.io.engine.transport.name);
+    } else {
+      console.log('No socket instance');
     }
   }
 
