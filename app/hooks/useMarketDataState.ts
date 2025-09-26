@@ -123,18 +123,18 @@ class MarketDataState {
     });
 
     // Listen for trading connection status
-    this.socket.on('trading_connection_status', (data: any) => {
+    this.socket.on('trading_connection_status', (data: unknown) => {
       console.log('Received trading_connection_status:', data);
       // Check if this contains the market data
-      if (data && data.data) {
+      if (data && typeof data === 'object' && data !== null && 'data' in data) {
         runInAction(() => {
-          this.frame = data;
+          this.frame = data as StreamFrame;
         });
       }
     });
 
     // Debug: Listen for any events to see what's being emitted
-    this.socket.onAny((eventName: string, ...args: any[]) => {
+    this.socket.onAny((eventName: string, ...args: unknown[]) => {
       console.log('Socket event received:', eventName, args);
       // If it's trading_connection_status, let's see the full structure
       if (eventName === 'trading_connection_status') {

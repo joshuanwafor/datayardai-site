@@ -210,3 +210,29 @@ To start receiving market data, emit the `trading/stream` event with the followi
 - Server base responds with "Welcome to Streaming API!": `http://157.230.96.29`
 
 
+
+### Observed base/quote pairs (from sampledata.json)
+
+- Pairs use the `<BASE><QUOTE>` format (e.g., `BTCUSDT`). Prefer the map key `PAIR` as canonical; inner `base`/`quote` fields can be exchange-specific abbreviations (e.g., Quidax uses `SDT` internally for `USDT`).
+- The dataset shows these quote currencies with representative examples:
+
+| Quote | Example pairs (abridged) |
+| --- | --- |
+| USDT | `BTCUSDT`, `ETHUSDT`, `BNBUSDT`, `ADAUSDT`, `SOLUSDT`, `TRXUSDT`, `SHIBUSDT`, `SANDUSDT`, `LTCUSDT`, `DOGEUSDT`, `USDCUSDT` |
+| NGN | `BTCNGN`, `ETHNGN`, `LTCNGN`, `SANDNGN`, `QDXNGN`, `XRPNGN`, `USDTNGN`, `CNGNNGN` |
+| KES | `ADAKES`, `ETHKES`, `SOLKES`, `DOGEKES`, `LTCKES`, `LUNAKES`, `MATICKES`, `POLKES`, `TONKES`, `ULDKES`, `USDCKES` |
+| GHS | `BTCGHS`, `USDTGHS` |
+| USD | `USDTUSD`, `USDCUSD` |
+| USDC | `BTCUSDC` |
+| USDD | `BTCUSDD` |
+| USD1 | `BTCUSD1` |
+| BTC | `ALICEBTC`, `BNBBTC`, `DOGEBTC`, `ETHBTC`, `LTCBTC`, `MATICBTC`, `SOLBTC`, `TONBTC` |
+| ETH | `AETHWETHETH` |
+| MATIC | `POLMATIC`, `TRUMPMATIC` |
+| TRUMP | `DOGSTRUMP` |
+| CNGN | `BTCCNGN`, `USDTCNGN` |
+| NGNT | `BTCNGNT`, `MATICNGNT` |
+
+Notes:
+- This is an abridged catalog to illustrate the universe of quotes seen in the sample; many bases exist for `USDT` and other quotes (see the `PAIR` keys under each `exchange` in the stream for the full list).
+- Fiat/stable quotes observed include `USD`, `USDT`, `USDC`, `USDD`, `NGN`, `NGNT`, `CNGN`, `GHS`, and `KES`.
