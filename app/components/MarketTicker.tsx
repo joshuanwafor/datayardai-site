@@ -15,7 +15,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
   const [sortBy, setSortBy] = useState<'pair' | 'price' | 'change' | 'volume' | 'exchanges'>('pair');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(20);
+  const [itemsPerPage] = useState(10);
 
   const formatPrice = (price: number) => {
     if (price === 0) return 'N/A';
