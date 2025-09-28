@@ -28,7 +28,7 @@ class MarketDataState {
   }
 
   connect(): void {
-    const SOCKET_URL = process.env.NEXT_PUBLIC_STREAM_URL || "http://157.230.96.29";
+    const SOCKET_URL = process.env.NEXT_PUBLIC_STREAM_URL || "https://api.datayardai.com";
     
     console.log('Attempting to connect to:', SOCKET_URL);
     
