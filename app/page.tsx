@@ -18,7 +18,7 @@ export default function Home() {
   const analytics = useMarketAnalytics(marketData, frame?.data.opportunities || []);
   const [selectedPair, setSelectedPair] = useState<string | undefined>();
 
-  const selectedMarketData = selectedPair 
+  const selectedMarketData = selectedPair
     ? marketData.find(m => m.pair === selectedPair) ?? null
     : null;
 
@@ -35,14 +35,7 @@ export default function Home() {
                 Real-time market data and arbitrage opportunities across exchanges
               </p>
             </div>
-            <ConnectionStatus
-              isConnected={isConnected}
-              error={error}
-              reconnectAttempts={reconnectAttempts}
-              onReconnect={reconnect}
-              onStartStream={startStream}
-              onTestConnection={testConnection}
-            />
+
           </div>
         </header>
 
@@ -64,7 +57,7 @@ export default function Home() {
               onPairSelect={setSelectedPair}
             />
           </div>
-          
+
           {/* Pair Details */}
           <div className="lg:col-span-1">
             <PairDetails marketData={selectedMarketData} />
@@ -91,6 +84,17 @@ export default function Home() {
           />
         </div>
 
+        <center className='my-4 md:w-1/2 mx-auto'>
+          <ConnectionStatus
+            isConnected={isConnected}
+            error={error}
+            reconnectAttempts={reconnectAttempts}
+            onReconnect={reconnect}
+            onStartStream={startStream}
+
+          /></center>
+
+
         <footer className="text-center text-gray-500 dark:text-gray-400 text-sm">
           <p>
             Data provided by Socket.IO API at{' '}
@@ -103,6 +107,8 @@ export default function Home() {
           </p>
         </footer>
       </div>
+
+
     </div>
   );
 }
