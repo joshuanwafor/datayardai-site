@@ -2,7 +2,7 @@
 
 import { io, Socket } from 'socket.io-client';
 import { makeObservable, observable, runInAction } from 'mobx';
-import { StreamFrame } from '../types/streaming';
+import { StreamFrame, TradingSessionStatus, TradingResponse, TradingConnectionStatus } from '../types/streaming';
 
 class MarketDataState {
   private socket: Socket | null = null;
@@ -11,6 +11,11 @@ class MarketDataState {
   public reconnectAttempts: number = 0;
   public frame: StreamFrame | null = null;
   public socketStatus: "connected" | "connection_error" | "disconnected" = "disconnected";
+  
+  // New trading event states
+  public tradingSessionStatus: TradingSessionStatus | null = null;
+  public tradingResponse: TradingResponse | null = null;
+  public tradingConnectionStatus: TradingConnectionStatus | null = null;
 
   constructor() {
     makeObservable(this, {
@@ -19,6 +24,9 @@ class MarketDataState {
       reconnectAttempts: observable,
       frame: observable,
       socketStatus: observable,
+      tradingSessionStatus: observable,
+      tradingResponse: observable,
+      tradingConnectionStatus: observable,
     });
     
     // Only initialize connection on client side
@@ -33,14 +41,17 @@ class MarketDataState {
     console.log('Attempting to connect to:', SOCKET_URL);
     
     this.socket = io(SOCKET_URL, {
-      transports: ['polling', 'websocket'], // Try polling first, then websocket
-      timeout: 30000,
-      forceNew: true,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 10000,
-      autoConnect: true,
+      // transports: ['polling', 'websocket'], // Try polling first, then websocket
+      // timeout: 30000,
+      // forceNew: true,
+      // reconnection: true,
+      // reconnectionAttempts: 10,
+      // reconnectionDelay: 2000,
+      // reconnectionDelayMax: 10000,
+      // autoConnect: true,
+      transports: ["websocket"],
+      reconnection: true, // Disable automatic reconnection
+      closeOnBeforeunload: false,
     });
 
     this.socket.on('connect', () => {
@@ -146,9 +157,10 @@ class MarketDataState {
     // Listen for trading connection status
     this.socket.on('trading_connection_status', (data: unknown) => {
       console.log('Received trading_connection_status:', data);
-      // Check if this contains the market data
-      if (data && typeof data === 'object' && data !== null && 'data' in data) {
-        runInAction(() => {
+      runInAction(() => {
+        this.tradingConnectionStatus = data as TradingConnectionStatus;
+        // Check if this contains the market data
+        if (data && typeof data === 'object' && data !== null && 'data' in data) {
           this.frame = data as StreamFrame;
           // Also ensure connection status is updated when we receive data
           if (!this.isConnected) {
@@ -156,9 +168,25 @@ class MarketDataState {
             this.socketStatus = "connected";
             this.error = null;
           }
-        });
-        console.log('Trading connection status updated, isConnected:', this.isConnected);
-      }
+        }
+      });
+      console.log('Trading connection status updated, isConnected:', this.isConnected);
+    });
+
+    // Listen for trading session status
+    this.socket.on('trading_session_status', (data: TradingSessionStatus) => {
+      console.log('Received trading_session_status:', data);
+      runInAction(() => {
+        this.tradingSessionStatus = data;
+      });
+    });
+
+    // Listen for trading response
+    this.socket.on('trading_response', (data: TradingResponse) => {
+      console.log('Received trading_response:', data);
+      runInAction(() => {
+        this.tradingResponse = data;
+      });
     });
 
     // Debug: Listen for any events to see what's being emitted

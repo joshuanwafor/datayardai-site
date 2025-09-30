@@ -48,3 +48,21 @@ export type MarketData = {
   bestAskExchange: string;
   midPrice: number;
 };
+
+// Trading event response types
+export type TradingSessionStatus = {
+  message: string;
+  status: string;
+};
+
+export type TradingResponse = {
+  message?: string;
+  status: string;
+  data?: unknown;
+};
+
+export type TradingConnectionStatus = {
+  status: string;
+  message?: string;
+  data?: unknown;
+};

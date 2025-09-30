@@ -49,7 +49,10 @@ export function useMarketStream() {
         error: marketDataState.error,
         reconnectAttempts: marketDataState.reconnectAttempts,
         frame: marketDataState.frame,
-        socketStatus: marketDataState.socketStatus
+        socketStatus: marketDataState.socketStatus,
+        tradingSessionStatus: marketDataState.tradingSessionStatus,
+        tradingResponse: marketDataState.tradingResponse,
+        tradingConnectionStatus: marketDataState.tradingConnectionStatus
       }),
       () => {
         // Force re-render when any of these values change
@@ -65,6 +68,9 @@ export function useMarketStream() {
     isConnected: marketDataState.isConnected,
     error: marketDataState.error,
     reconnectAttempts: marketDataState.reconnectAttempts,
+    tradingSessionStatus: marketDataState.tradingSessionStatus,
+    tradingResponse: marketDataState.tradingResponse,
+    tradingConnectionStatus: marketDataState.tradingConnectionStatus,
     reconnect,
     disconnect,
     startStream,
