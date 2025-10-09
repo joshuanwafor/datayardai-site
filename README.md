@@ -24,7 +24,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 The application requires password authentication to access the dashboard.
 
-- **Default Password**: `datayard2024`
+- **Default Password**: `R9x!vT2z#Lm8@cQe`
 - To customize, set the environment variable: `NEXT_PUBLIC_APP_PASSWORD`
 - The password is stored in localStorage after successful login
 - Click the "Logout" button in the dashboard header to sign out

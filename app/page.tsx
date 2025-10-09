@@ -25,7 +25,7 @@ export default function HomePage() {
 
     // Simulate a slight delay for better UX
     setTimeout(() => {
-      const CORRECT_PASSWORD = process.env.NEXT_PUBLIC_APP_PASSWORD || 'datayard2024';
+      const CORRECT_PASSWORD = process.env.NEXT_PUBLIC_APP_PASSWORD || 'R9x!vT2z#Lm8@cQe';
       
       if (password === CORRECT_PASSWORD) {
         localStorage.setItem('isAuthenticated', 'true');
