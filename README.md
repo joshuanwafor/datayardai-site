@@ -20,6 +20,32 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Authentication
+
+The application requires password authentication to access the dashboard.
+
+- **Default Password**: `datayard2024`
+- To customize, set the environment variable: `NEXT_PUBLIC_APP_PASSWORD`
+- The password is stored in localStorage after successful login
+- Click the "Logout" button in the dashboard header to sign out
+
+### Routes
+
+- `/` - Login page (home)
+- `/app` - Protected dashboard (requires authentication)
+
+## Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+# API Configuration
+NEXT_PUBLIC_STREAM_URL=https://api.datayardai.com
+
+# Authentication (optional - defaults to 'datayard2024')
+NEXT_PUBLIC_APP_PASSWORD=your_custom_password_here
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
@@ -42,3 +68,4 @@ Realtime market data and arbitrage opportunities are streamed over WebSocket.
 - Docs: see [`docs/streaming.md`](docs/streaming.md)
 - Server base: `http://157.230.96.29`
 - Client env: set `NEXT_PUBLIC_STREAM_URL` to your Socket.IO URL
+
