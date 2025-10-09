@@ -22,10 +22,9 @@ export default function HomePage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     // Simulate a slight delay for better UX
     setTimeout(() => {
-      const CORRECT_PASSWORD = process.env.NEXT_PUBLIC_APP_PASSWORD || 'R9x!vT2z#Lm8@cQe';
+      const CORRECT_PASSWORD = 'R9x!vT2z#Lm8@cQe';
       
       if (password === CORRECT_PASSWORD) {
         localStorage.setItem('isAuthenticated', 'true');
@@ -37,6 +36,7 @@ export default function HomePage() {
       }
     }, 500);
   };
+  // Login Page
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">

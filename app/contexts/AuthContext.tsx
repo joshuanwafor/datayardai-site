@@ -10,7 +10,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const CORRECT_PASSWORD = process.env.NEXT_PUBLIC_APP_PASSWORD || 'R9x!vT2z#Lm8@cQe';
+const CORRECT_PASSWORD = 'R9x!vT2z#Lm8@cQe';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
