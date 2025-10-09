@@ -16,6 +16,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
   const [showAll, setShowAll] = useState(false);
 
   const formatPrice = (price: number) => {
+    if (!price || isNaN(price) || !isFinite(price)) return '0.00';
     if (price < 0.01) return price.toExponential(2);
     if (price < 1) return price.toFixed(4);
     if (price < 100) return price.toFixed(2);
@@ -23,6 +24,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
   };
 
   const formatProfit = (profit: number) => {
+    if (!profit || isNaN(profit) || !isFinite(profit)) return '0.00';
     if (profit < 0.01) return profit.toExponential(2);
     if (profit < 1) return profit.toFixed(4);
     if (profit < 100) return profit.toFixed(2);
