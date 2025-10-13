@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { MarketData, Opportunity } from '../types/streaming';
+import { MarketData, ArbitrageOpportunity } from '../types/streaming';
 
-export function useMarketAnalytics(marketData: MarketData[], opportunities: Opportunity[]) {
+export function useMarketAnalytics(marketData: MarketData[], opportunities: ArbitrageOpportunity[]) {
   return useMemo(() => {
     // Calculate total pairs and exchanges
     const totalPairs = marketData.length;

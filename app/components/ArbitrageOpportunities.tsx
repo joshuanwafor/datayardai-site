@@ -1,19 +1,48 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Opportunity } from '../types/streaming';
-import { TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Filter, Search } from 'lucide-react';
+import { ArbitrageOpportunity, Opportunity, CoinCapOpportunity } from '../types/streaming';
+import { TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Filter, Search, Coins, Globe } from 'lucide-react';
 
 interface ArbitrageOpportunitiesProps {
-  opportunities: Opportunity[];
+  opportunities: ArbitrageOpportunity[];
   maxDisplay?: number;
 }
 
+// Type guard functions
+function isPublicOpportunity(opp: ArbitrageOpportunity): opp is Opportunity {
+  return 'pair' in opp && 'buy_exchange' in opp && 'sell_exchange' in opp;
+}
+
+function isCoinCapOpportunity(opp: ArbitrageOpportunity): opp is CoinCapOpportunity {
+  return 'symbol' in opp && 'lowest' in opp && 'highest' in opp;
+}
+
 export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: ArbitrageOpportunitiesProps) {
+  console.log(opportunities);
+  console.log("opportunities");
+
   const [sortBy, setSortBy] = useState<'profit' | 'percentage' | 'time' | 'pair'>('percentage');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterPair, setFilterPair] = useState<string>('');
   const [showAll, setShowAll] = useState(false);
+  const [activeTab, setActiveTab] = useState<'public' | 'coincap'>('public');
+
+  // Separate opportunities by type
+  const { publicOpportunities, coinCapOpportunities } = useMemo(() => {
+    const publicOps: Opportunity[] = [];
+    const coinCapOps: CoinCapOpportunity[] = [];
+    
+    opportunities.forEach(opp => {
+      if (isPublicOpportunity(opp)) {
+        publicOps.push(opp);
+      } else if (isCoinCapOpportunity(opp)) {
+        coinCapOps.push(opp);
+      }
+    });
+    
+    return { publicOpportunities: publicOps, coinCapOpportunities: coinCapOps };
+  }, [opportunities]);
 
   const formatPrice = (price: number) => {
     if (!price || isNaN(price) || !isFinite(price)) return '0.00';
@@ -21,14 +50,6 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     if (price < 1) return price.toFixed(4);
     if (price < 100) return price.toFixed(2);
     return price.toFixed(0);
-  };
-
-  const formatProfit = (profit: number) => {
-    if (!profit || isNaN(profit) || !isFinite(profit)) return '0.00';
-    if (profit < 0.01) return profit.toExponential(2);
-    if (profit < 1) return profit.toFixed(4);
-    if (profit < 100) return profit.toFixed(2);
-    return profit.toFixed(0);
   };
 
   const formatTime = (timestamp: string) => {
@@ -43,9 +64,9 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     return date.toLocaleDateString();
   };
 
-  // Filter and sort opportunities
-  const filteredAndSortedOpportunities = useMemo(() => {
-    const filtered = opportunities.filter(opp => 
+  // Filter and sort PUBLIC opportunities
+  const filteredAndSortedPublicOps = useMemo(() => {
+    const filtered = publicOpportunities.filter(opp => 
       opp.pair.toLowerCase().includes(filterPair.toLowerCase())
     );
 
@@ -87,25 +108,56 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     });
 
     return showAll ? filtered : filtered.slice(0, maxDisplay);
-  }, [opportunities, sortBy, sortOrder, filterPair, showAll, maxDisplay]);
+  }, [publicOpportunities, sortBy, sortOrder, filterPair, showAll, maxDisplay]);
 
-  // Calculate summary statistics
-  const stats = useMemo(() => {
-    if (opportunities.length === 0) return null;
-    
-    const totalProfit = opportunities.reduce((sum, opp) => sum + opp.profit, 0);
-    const avgProfit = opportunities.reduce((sum, opp) => sum + opp.profit_percentage, 0) / opportunities.length;
-    const maxProfit = Math.max(...opportunities.map(opp => opp.profit_percentage));
-    const uniquePairs = new Set(opportunities.map(opp => opp.pair)).size;
+  // Filter and sort COINCAP opportunities
+  const filteredAndSortedCoinCapOps = useMemo(() => {
+    const filtered = coinCapOpportunities.filter(opp => 
+      opp.symbol.toLowerCase().includes(filterPair.toLowerCase())
+    );
 
-    return {
-      totalProfit,
-      avgProfit,
-      maxProfit,
-      uniquePairs,
-      totalOpportunities: opportunities.length
-    };
-  }, [opportunities]);
+    filtered.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case 'profit':
+          aValue = a.price_difference;
+          bValue = b.price_difference;
+          break;
+        case 'percentage':
+          aValue = a.percentage_difference;
+          bValue = b.percentage_difference;
+          break;
+        case 'time':
+          aValue = new Date(a.timestamp).getTime();
+          bValue = new Date(b.timestamp).getTime();
+          break;
+        case 'pair':
+          aValue = a.symbol;
+          bValue = b.symbol;
+          break;
+        default:
+          aValue = a.percentage_difference;
+          bValue = b.percentage_difference;
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else {
+        return sortOrder === 'asc' 
+          ? (aValue as number) - (bValue as number)
+          : (bValue as number) - (aValue as number);
+      }
+    });
+
+    return showAll ? filtered : filtered.slice(0, maxDisplay);
+  }, [coinCapOpportunities, sortBy, sortOrder, filterPair, showAll, maxDisplay]);
+
+  const currentOpportunities = activeTab === 'public' ? filteredAndSortedPublicOps : filteredAndSortedCoinCapOps;
+  const currentTotalCount = activeTab === 'public' ? publicOpportunities.length : coinCapOpportunities.length;
 
   if (opportunities.length === 0) {
     return (
@@ -142,9 +194,35 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
               Arbitrage Opportunities
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {opportunities.length} opportunities found
+              {opportunities.length} opportunities found ({publicOpportunities.length} Public, {coinCapOpportunities.length} CoinCap)
             </p>
           </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveTab('public')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              activeTab === 'public'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            Public ({publicOpportunities.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('coincap')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+              activeTab === 'coincap'
+                ? 'bg-purple-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+            }`}
+          >
+            <Coins className="w-4 h-4" />
+            CoinCap ({coinCapOpportunities.length})
+          </button>
         </div>
 
         {/* Controls */}
@@ -153,7 +231,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Filter by pair..."
+              placeholder={activeTab === 'public' ? "Filter by pair..." : "Filter by symbol..."}
               value={filterPair}
               onChange={(e) => setFilterPair(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -177,148 +255,194 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
               <option value="profit-asc">Profit $ Low-High</option>
               <option value="time-desc">Newest First</option>
               <option value="time-asc">Oldest First</option>
-              <option value="pair-asc">Pair A-Z</option>
-              <option value="pair-desc">Pair Z-A</option>
+              <option value="pair-asc">{activeTab === 'public' ? 'Pair' : 'Symbol'} A-Z</option>
+              <option value="pair-desc">{activeTab === 'public' ? 'Pair' : 'Symbol'} Z-A</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Statistics Panel */}
-      {stats && (
-        <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-gray-600 dark:text-gray-400 mb-1">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-xs font-medium">TOTAL PROFIT</span>
-              </div>
-              <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                ${stats.totalProfit.toFixed(2)}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-gray-600 dark:text-gray-400 mb-1">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-xs font-medium">AVG PROFIT</span>
-              </div>
-              <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                {stats.avgProfit.toFixed(2)}%
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-gray-600 dark:text-gray-400 mb-1">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-xs font-medium">MAX PROFIT</span>
-              </div>
-              <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                {stats.maxProfit.toFixed(2)}%
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-gray-600 dark:text-gray-400 mb-1">
-                <Clock className="w-4 h-4" />
-                <span className="text-xs font-medium">UNIQUE PAIRS</span>
-              </div>
-              <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                {stats.uniquePairs}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Opportunities List */}
-      <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        {filteredAndSortedOpportunities.map((opp, index) => (
-          <div key={`${opp.pair}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {opp.pair.substring(0, 2)}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {opp.pair}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatTime(opp.timestamp)}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div className="flex items-center gap-2">
-                    <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
+      {/* PUBLIC Opportunities List */}
+      {activeTab === 'public' && (
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {filteredAndSortedPublicOps.map((opp, index) => (
+            <div key={`${opp.pair}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      {opp.pair.substring(0, 2)}
+                    </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        Buy on {opp.buy_exchange}
-                      </div>
-                      <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                        ${formatPrice(opp.buy_price)}
-                      </div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {opp.pair}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatTime(opp.timestamp)}
+                      </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        Sell on {opp.sell_exchange}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          Buy on {opp.buy_exchange}
+                        </div>
+                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                          ${formatPrice(opp.buy_price)}
+                        </div>
                       </div>
-                      <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                        ${formatPrice(opp.sell_price)}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          Sell on {opp.sell_exchange}
+                        </div>
+                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                          ${formatPrice(opp.sell_price)}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="text-right ml-6">
-                <div className={`text-2xl font-bold mb-1 ${
-                  opp.profit_percentage >= 1 
-                    ? 'text-green-600 dark:text-green-400'
-                    : opp.profit_percentage >= 0.5
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}>
-                  {opp.profit_percentage.toFixed(2)}%
-                </div>
-                <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                  ${formatProfit(opp.profit)}
-                </div>
-                <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${
-                  opp.profit_percentage >= 1 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                    : opp.profit_percentage >= 0.5
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                }`}>
-                  {opp.profit_percentage >= 1 ? 'High Profit' : opp.profit_percentage >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+                
+                <div className="text-right ml-6">
+                  <div className={`text-2xl font-bold mb-1 ${
+                    opp.profit_percentage >= 1 
+                      ? 'text-green-600 dark:text-green-400'
+                      : opp.profit_percentage >= 0.5
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }`}>
+                    {opp.profit_percentage.toFixed(2)}%
+                  </div>
+                  <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                    ${formatPrice(opp.profit)}
+                  </div>
+                  <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${
+                    opp.profit_percentage >= 1 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : opp.profit_percentage >= 0.5
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>
+                    {opp.profit_percentage >= 1 ? 'High Profit' : opp.profit_percentage >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {/* COINCAP Opportunities List */}
+      {activeTab === 'coincap' && (
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {filteredAndSortedCoinCapOps.map((opp, index) => (
+            <div key={`${opp.symbol}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      {opp.symbol.substring(0, 2)}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {opp.symbol} <span className="text-xs text-gray-500">({opp.currency})</span>
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatTime(opp.timestamp)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    <div className="flex items-center gap-2">
+                      <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          Buy on {opp.lowest.exchange}
+                        </div>
+                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                          ${formatPrice(opp.lowest.price)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          Sell on {opp.highest.exchange}
+                        </div>
+                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                          ${formatPrice(opp.highest.price)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional CoinCap info */}
+                  <div className="mt-3 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    {opp.via_currency && (
+                      <div>Via: <span className="font-medium">{opp.via_currency}</span></div>
+                    )}
+                    {opp.confidence_score > 0 && (
+                      <div>Confidence: <span className="font-medium">{(opp.confidence_score * 100).toFixed(0)}%</span></div>
+                    )}
+                    <div>Type: <span className="font-medium">{opp.type}</span></div>
+                  </div>
+                </div>
+                
+                <div className="text-right ml-6">
+                  <div className={`text-2xl font-bold mb-1 ${
+                    opp.percentage_difference >= 1 
+                      ? 'text-green-600 dark:text-green-400'
+                      : opp.percentage_difference >= 0.5
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }`}>
+                    {opp.percentage_difference.toFixed(2)}%
+                  </div>
+                  <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                    ${formatPrice(opp.price_difference)}
+                  </div>
+                  <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${
+                    opp.percentage_difference >= 1 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : opp.percentage_difference >= 0.5
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>
+                    {opp.percentage_difference >= 1 ? 'High Profit' : opp.percentage_difference >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Show More/Less Button */}
-      {opportunities.length > maxDisplay && (
+      {currentTotalCount > maxDisplay && (
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
           <button
             onClick={() => setShowAll(!showAll)}
             className="w-full py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             {showAll 
-              ? `Show Less (${maxDisplay} of ${opportunities.length})`
-              : `Show All (${opportunities.length} opportunities)`
+              ? `Show Less (${maxDisplay} of ${currentTotalCount})`
+              : `Show All (${currentTotalCount} opportunities)`
             }
           </button>
         </div>
       )}
 
-      {filteredAndSortedOpportunities.length === 0 && filterPair && (
+      {currentOpportunities.length === 0 && filterPair && (
         <div className="p-12 text-center">
           <div className="text-gray-400 dark:text-gray-500 mb-4">
             <Search className="w-12 h-12 mx-auto opacity-50" />

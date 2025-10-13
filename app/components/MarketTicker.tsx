@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, Filter, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Filter, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MarketData } from '../types/streaming';
 
 interface MarketTickerProps {
@@ -12,7 +12,7 @@ interface MarketTickerProps {
 
 export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketTickerProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'pair' | 'price' | 'change' | 'volume' | 'exchanges'>('pair');
+  const [sortBy, setSortBy] = useState<'pair' | 'price' | 'exchanges'>('pair');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -38,20 +38,6 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
     return `${sign}${percent.toFixed(2)}%`;
   };
 
-  // Simulate 24h change based on spread (for demo purposes)
-  const getSimulatedChange = () => {
-    // Simulate change between -5% to +5% based on spread
-    const baseChange = (Math.random() - 0.5) * 10;
-    return baseChange;
-  };
-
-  // Simulate volume based on number of exchanges and spread
-  const getSimulatedVolume = (market: MarketData) => {
-    const baseVolume = market.exchanges.length * 1000000;
-    const spreadFactor = market.midPrice > 0 ? ((market.bestAsk - market.bestBid) / market.midPrice) * 100 : 0;
-    return baseVolume * (1 + spreadFactor / 10);
-  };
-
   // Filter and sort data
   const filteredAndSortedData = useMemo(() => {
     const filtered = marketData.filter(market =>
@@ -70,14 +56,6 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
         case 'price':
           aValue = a.midPrice;
           bValue = b.midPrice;
-          break;
-        case 'change':
-          aValue = getSimulatedChange();
-          bValue = getSimulatedChange();
-          break;
-        case 'volume':
-          aValue = getSimulatedVolume(a);
-          bValue = getSimulatedVolume(b);
           break;
         case 'exchanges':
           aValue = a.exchanges.length;
@@ -108,7 +86,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
   const endIndex = startIndex + itemsPerPage;
   const currentData = filteredAndSortedData.slice(startIndex, endIndex);
 
-  const handleSort = (column: 'pair' | 'price' | 'change' | 'volume' | 'exchanges') => {
+  const handleSort = (column: 'pair' | 'price' | 'exchanges') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
@@ -118,7 +96,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
     setCurrentPage(1);
   };
 
-  const SortButton = ({ column, children }: { column: 'pair' | 'price' | 'change' | 'volume' | 'exchanges'; children: React.ReactNode }) => (
+  const SortButton = ({ column, children }: { column: 'pair' | 'price' | 'exchanges'; children: React.ReactNode }) => (
     <button
       onClick={() => handleSort(column)}
       className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
@@ -162,7 +140,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
             <select
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
-                const [newSortBy, newSortOrder] = e.target.value.split('-') as ['pair' | 'price' | 'change' | 'volume' | 'exchanges', 'asc' | 'desc'];
+                const [newSortBy, newSortOrder] = e.target.value.split('-') as ['pair' | 'price' | 'exchanges', 'asc' | 'desc'];
                 setSortBy(newSortBy);
                 setSortOrder(newSortOrder);
                 setCurrentPage(1);
@@ -173,10 +151,6 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
               <option value="pair-desc">Pair Z-A</option>
               <option value="price-desc">Price High-Low</option>
               <option value="price-asc">Price Low-High</option>
-              <option value="change-desc">Change High-Low</option>
-              <option value="change-asc">Change Low-High</option>
-              <option value="volume-desc">Volume High-Low</option>
-              <option value="volume-asc">Volume Low-High</option>
               <option value="exchanges-desc">Most Exchanges</option>
               <option value="exchanges-asc">Least Exchanges</option>
             </select>
@@ -196,10 +170,7 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
                 <SortButton column="price">Price</SortButton>
               </th>
               <th className="px-4 py-3 text-right">
-                <SortButton column="change">24h Change</SortButton>
-              </th>
-              <th className="px-4 py-3 text-right">
-                <SortButton column="volume">24h Volume</SortButton>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Spread</span>
               </th>
               <th className="px-4 py-3 text-center">
                 <SortButton column="exchanges">Exchanges</SortButton>
@@ -211,9 +182,6 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
               const spread = market.bestAsk - market.bestBid;
               const spreadPercent = market.midPrice > 0 ? (spread / market.midPrice) * 100 : 0;
               const isSelected = selectedPair === market.pair;
-              const change24h = getSimulatedChange();
-              const volume24h = getSimulatedVolume(market);
-              const isPositive = change24h >= 0;
               
               return (
                 <tr 
@@ -250,32 +218,19 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
                     </div>
                   </td>
                   
-                  {/* 24h Change */}
+                  {/* Spread */}
                   <td className="px-4 py-3 text-right">
-                    <div className={`flex items-center justify-end gap-1 font-mono text-sm font-semibold ${
-                      isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {isPositive ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                      {formatPercent(change24h)}
+                    <div className="font-mono text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      ${formatPrice(spread)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Spread: {formatPercent(spreadPercent)}
-                    </div>
-                  </td>
-                  
-                  {/* 24h Volume */}
-                  <td className="px-4 py-3 text-right">
-                    <div className="font-mono text-sm text-gray-900 dark:text-gray-100">
-                      ${formatVolume(volume24h)}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {market.exchanges.length} exchanges
+                      {formatPercent(spreadPercent)}
                     </div>
                   </td>
                   
                   {/* Exchanges */}
                   <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
+                    <div className="flex flex-col items-center gap-2">
                       <div className="flex -space-x-1">
                         {market.exchanges.slice(0, 4).map((ex, index) => (
                           <div
@@ -291,6 +246,9 @@ export function MarketTicker({ marketData, selectedPair, onPairSelect }: MarketT
                             +{market.exchanges.length - 4}
                           </div>
                         )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {market.exchanges.length} total
                       </div>
                     </div>
                   </td>

@@ -1,11 +1,20 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Opportunity } from '../types/streaming';
+import { ArbitrageOpportunity, Opportunity, CoinCapOpportunity } from '../types/streaming';
 import { TrendingUp, DollarSign, Activity, Target } from 'lucide-react';
 
 interface ArbitrageHeatmapProps {
-  opportunities: Opportunity[];
+  opportunities: ArbitrageOpportunity[];
+}
+
+// Type guard functions
+function isPublicOpportunity(opp: ArbitrageOpportunity): opp is Opportunity {
+  return 'pair' in opp && 'buy_exchange' in opp && 'sell_exchange' in opp;
+}
+
+function isCoinCapOpportunity(opp: ArbitrageOpportunity): opp is CoinCapOpportunity {
+  return 'symbol' in opp && 'lowest' in opp && 'highest' in opp;
 }
 
 
@@ -13,9 +22,12 @@ export function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
   const [selectedPair, setSelectedPair] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'profit' | 'count' | 'pair'>('profit');
 
-  // Process opportunities data
+  // Process opportunities data - only use public opportunities for heatmap
   const pairData = useMemo(() => {
-    const opportunitiesByPair = opportunities.reduce((acc, opp) => {
+    // Filter to only public opportunities
+    const publicOpps = opportunities.filter(isPublicOpportunity);
+    
+    const opportunitiesByPair = publicOpps.reduce((acc, opp) => {
       if (!acc[opp.pair]) {
         acc[opp.pair] = [];
       }
@@ -58,15 +70,16 @@ export function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
     });
   }, [pairData, sortBy]);
 
-  // Calculate overall statistics
+  // Calculate overall statistics - only for public opportunities
   const stats = useMemo(() => {
-    if (opportunities.length === 0) return null;
+    const publicOpps = opportunities.filter(isPublicOpportunity);
+    if (publicOpps.length === 0) return null;
     
-    const totalOpportunities = opportunities.length;
-    const avgProfit = opportunities.reduce((sum, o) => sum + o.profit_percentage, 0) / totalOpportunities;
-    const maxProfit = Math.max(...opportunities.map(o => o.profit_percentage));
-    const totalProfit = opportunities.reduce((sum, o) => sum + o.profit, 0);
-    const uniquePairs = new Set(opportunities.map(o => o.pair)).size;
+    const totalOpportunities = publicOpps.length;
+    const avgProfit = publicOpps.reduce((sum, o) => sum + o.profit_percentage, 0) / totalOpportunities;
+    const maxProfit = Math.max(...publicOpps.map(o => o.profit_percentage));
+    const totalProfit = publicOpps.reduce((sum, o) => sum + o.profit, 0);
+    const uniquePairs = new Set(publicOpps.map(o => o.pair)).size;
 
     return {
       totalOpportunities,

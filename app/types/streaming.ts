@@ -8,6 +8,7 @@ export type Quote = {
   volume: number;
 };
 
+// Public endpoint format
 export type Opportunity = {
   type: "direct";
   pair: string;
@@ -21,11 +22,34 @@ export type Opportunity = {
   db_created_at: string; // ISO
 };
 
+// CoinCap format
+export type CoinCapOpportunity = {
+  type: string;
+  symbol: string;
+  lowest: {
+    price: number;
+    exchange: string;
+  };
+  highest: {
+    price: number;
+    exchange: string;
+  };
+  price_difference: number;
+  percentage_difference: number;
+  currency: string;
+  timestamp: string;
+  via_currency: string | null;
+  confidence_score: number;
+};
+
+// Union type for both formats
+export type ArbitrageOpportunity = Opportunity | CoinCapOpportunity;
+
 export type StreamFrame = {
   status: string;
   data: {
     all_exchange_prices: Record<string, Record<string, Quote>>;
-    opportunities: Opportunity[];
+    opportunities: ArbitrageOpportunity[];
     analyzer_status?: string;
     ts?: number;
   };
