@@ -33,7 +33,7 @@ export function PairDetails({ marketData }: PairDetailsProps) {
   }
 
   const formatPrice = (price: number) => {
-    if (price === 0) return 'N/A';
+    if (!price || isNaN(price) || !isFinite(price) || price === 0) return 'N/A';
     if (price < 0.01) return price.toExponential(2);
     if (price < 1) return price.toFixed(4);
     if (price < 100) return price.toFixed(2);
@@ -41,6 +41,7 @@ export function PairDetails({ marketData }: PairDetailsProps) {
   };
 
   const formatPercent = (percent: number) => {
+    if (!percent || isNaN(percent) || !isFinite(percent)) return '0.00%';
     return `${percent.toFixed(2)}%`;
   };
 
