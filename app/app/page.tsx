@@ -12,12 +12,16 @@ import { PairDetails } from '../components/PairDetails';
 import { MarketOverview } from '../components/MarketOverview';
 import { ArbitrageHeatmap } from '../components/ArbitrageHeatmap';
 import { PriceChart } from '../components/PriceChart';
+import { CoinCapDataView } from '../components/CoinCapDataView';
 import { LogOut } from 'lucide-react';
+
+type TabType = 'regular' | 'coincap';
 
 export default function AppPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabType>('regular');
 
   // Check authentication
   useEffect(() => {
@@ -36,7 +40,8 @@ export default function AppPage() {
   };
 
   const { frame, isConnected, error, reconnectAttempts, reconnect, startStream, testConnection } = useMarketStream();
-  const marketData = useMarketData(frame?.data.all_exchange_prices || {});
+  const { marketData, coinCapFormatData } = useMarketData(frame?.data.all_exchange_prices || {});
+
   const analytics = useMarketAnalytics(marketData, frame?.data.opportunities || []);
   const [selectedPair, setSelectedPair] = useState<string | undefined>();
 
@@ -88,47 +93,95 @@ export default function AppPage() {
         {/* Market Overview */}
         <MarketOverview {...analytics} />
 
-        {/* Arbitrage Heatmap */}
+        {/* Tab Navigation */}
         <div className="mb-8">
-          <ArbitrageHeatmap opportunities={frame?.data.opportunities || []} />
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <nav className="flex -mb-px">
+                <button
+                  onClick={() => setActiveTab('regular')}
+                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'regular'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  }`}
+                >
+                  Trading Data
+                  <span className="ml-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+                    {marketData.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('coincap')}
+                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'coincap'
+                      ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                  }`}
+                >
+                  CoinCap Format
+                  <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full">
+                    {coinCapFormatData.length}
+                  </span>
+                </button>
+              </nav>
+            </div>
+          </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Market Ticker */}
-          <div className="lg:col-span-2">
-            <MarketTicker
-              marketData={marketData}
-              selectedPair={selectedPair}
-              onPairSelect={setSelectedPair}
-            />
-          </div>
+        {/* Regular Trading Data View */}
+        {activeTab === 'regular' && (
+          <>
+            {/* Arbitrage Heatmap */}
+            <div className="mb-8">
+              <ArbitrageHeatmap opportunities={frame?.data.opportunities || []} />
+            </div>
 
-          {/* Pair Details */}
-          <div className="lg:col-span-1">
-            <PairDetails marketData={selectedMarketData} />
-          </div>
-        </div>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+              {/* Market Ticker */}
+              <div className="lg:col-span-2">
+                <MarketTicker
+                  marketData={marketData}
+                  selectedPair={selectedPair}
+                  onPairSelect={setSelectedPair}
+                />
+              </div>
 
-        {/* Price Chart for Selected Pair */}
-        {selectedMarketData && (
-          <div className="mb-8">
-            <PriceChart
-              pair={selectedMarketData.pair}
-              priceHistory={[]} // Would need historical data
-              currentPrice={selectedMarketData.midPrice}
-              previousPrice={selectedMarketData.midPrice * 0.98} // Mock previous price
-            />
-          </div>
+              {/* Pair Details */}
+              <div className="lg:col-span-1">
+                <PairDetails marketData={selectedMarketData} />
+              </div>
+            </div>
+
+            {/* Price Chart for Selected Pair */}
+            {selectedMarketData && (
+              <div className="mb-8">
+                <PriceChart
+                  pair={selectedMarketData.pair}
+                  priceHistory={[]} // Would need historical data
+                  currentPrice={selectedMarketData.midPrice}
+                  previousPrice={selectedMarketData.midPrice * 0.98} // Mock previous price
+                />
+              </div>
+            )}
+
+            {/* Arbitrage Opportunities */}
+            <div className="mb-8">
+              <ArbitrageOpportunities
+                opportunities={frame?.data.opportunities || []}
+                maxDisplay={15}
+              />
+            </div>
+          </>
         )}
 
-        {/* Arbitrage Opportunities */}
-        <div className="mb-8">
-          <ArbitrageOpportunities
-            opportunities={frame?.data.opportunities || []}
-            maxDisplay={15}
-          />
-        </div>
+        {/* CoinCap Format Data View */}
+        {activeTab === 'coincap' && (
+          <div className="mb-8">
+            <CoinCapDataView data={coinCapFormatData} />
+          </div>
+        )}
 
         <center className='my-4 md:w-1/2 mx-auto'>
           <ConnectionStatus

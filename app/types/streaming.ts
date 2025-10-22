@@ -8,6 +8,21 @@ export type Quote = {
   volume: number;
 };
 
+
+export type CoinCapQuote = {
+  symbol: string;
+  name: string;
+  price_usd: number;
+  global_price_usd: number;
+  volume_24h_usd: number;
+  change_24h: number;
+  market_cap_usd: number;
+  rank: number;
+  exchange: string;
+  timestamp: string;
+  has_real_market_cap: boolean;
+};
+
 // Public endpoint format
 export type Opportunity = {
   type: "direct";
@@ -48,14 +63,14 @@ export type ArbitrageOpportunity = Opportunity | CoinCapOpportunity;
 export type StreamFrame = {
   status: string;
   data: {
-    all_exchange_prices: Record<string, Record<string, Quote>>;
+    all_exchange_prices: Record<string, Record<string, Quote | CoinCapQuote>>;
     opportunities: ArbitrageOpportunity[];
     analyzer_status?: string;
     ts?: number;
   };
 };
 
-export type ExchangePrices = Record<string, Record<string, Quote>>;
+export type ExchangePrices = Record<string, Record<string, Quote | CoinCapQuote>>;
 export type MarketData = {
   pair: string;
   exchanges: {
