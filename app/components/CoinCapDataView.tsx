@@ -107,9 +107,7 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
               <span className="text-yellow-500">⚠️</span>
               CoinCap Format Data
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Exchanges using incompatible format (missing bid/ask spreads)
-            </p>
+        
           </div>
           <div className="flex items-center gap-2">
             <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm font-semibold border border-yellow-200 dark:border-yellow-800">
