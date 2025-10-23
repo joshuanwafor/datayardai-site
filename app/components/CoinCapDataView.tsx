@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CoinCapMarketData } from '../hooks/useMarketData';
 import { ChevronLeft, ChevronRight, Search, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -18,27 +18,9 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
   const [sortField, setSortField] = useState<SortField>('volume');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  if (data.length === 0) {
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-12 text-center">
-        <div className="text-gray-400 dark:text-gray-500 mb-4">
-          <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          All Clear! ✨
-        </h3>
-        <p className="text-gray-500 dark:text-gray-400">
-          No CoinCap format data detected. All exchanges are using the standard trading format.
-        </p>
-      </div>
-    );
-  }
-
   // Filter and sort data
   const filteredData = useMemo(() => {
-    let filtered = data.filter(item => 
+    const filtered = data.filter(item => 
       item.exchange.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -46,12 +28,12 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
 
     // Sort data
     filtered.sort((a, b) => {
-      let aVal: any = a[sortField];
-      let bVal: any = b[sortField];
+      let aVal: string | number = a[sortField];
+      let bVal: string | number = b[sortField];
 
       if (typeof aVal === 'string') {
         aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
+        bVal = (bVal as string).toLowerCase();
       }
 
       if (sortDirection === 'asc') {
@@ -71,9 +53,27 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
   const currentData = filteredData.slice(startIndex, endIndex);
 
   // Reset to page 1 when filters change
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, itemsPerPage]);
+
+  if (data.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-12 text-center">
+        <div className="text-gray-400 dark:text-gray-500 mb-4">
+          <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          All Clear! ✨
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400">
+          No CoinCap format data detected. All exchanges are using the standard trading format.
+        </p>
+      </div>
+    );
+  }
 
   const uniqueExchanges = new Set(data.map(d => d.exchange)).size;
   const gainersCount = data.filter(d => d.change24h > 0).length;

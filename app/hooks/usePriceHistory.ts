@@ -21,45 +21,48 @@ export function usePriceHistory(marketData: MarketData[]) {
     if (marketData.length === 0) return;
 
     const now = Date.now();
-    const newPriceHistory = new Map(priceHistory);
-    const changes: PriceChange[] = [];
+    setPriceHistory((prevHistory) => {
+      const newPriceHistory = new Map(prevHistory);
+      const changes: PriceChange[] = [];
 
-    marketData.forEach((market) => {
-      const currentPrice = market.midPrice;
-      
-      if (!currentPrice || currentPrice === 0) return;
+      marketData.forEach((market) => {
+        const currentPrice = market.midPrice;
+        
+        if (!currentPrice || currentPrice === 0) return;
 
-      const existing = newPriceHistory.get(market.pair);
+        const existing = newPriceHistory.get(market.pair);
 
-      if (!existing) {
-        // First time seeing this pair, store initial price
-        newPriceHistory.set(market.pair, {
-          initialPrice: currentPrice,
-          timestamp: now
-        });
-      } else {
-        // Calculate change from initial price
-        const initialPrice = existing.initialPrice;
-        const change = currentPrice - initialPrice;
-        const changePercent = initialPrice > 0 ? (change / initialPrice) * 100 : 0;
+        if (!existing) {
+          // First time seeing this pair, store initial price
+          newPriceHistory.set(market.pair, {
+            initialPrice: currentPrice,
+            timestamp: now
+          });
+        } else {
+          // Calculate change from initial price
+          const initialPrice = existing.initialPrice;
+          const change = currentPrice - initialPrice;
+          const changePercent = initialPrice > 0 ? (change / initialPrice) * 100 : 0;
 
-        changes.push({
-          pair: market.pair,
-          currentPrice,
-          initialPrice,
-          change,
-          changePercent,
-          lastUpdate: now
-        });
+          changes.push({
+            pair: market.pair,
+            currentPrice,
+            initialPrice,
+            change,
+            changePercent,
+            lastUpdate: now
+          });
+        }
+      });
+
+      setPriceChanges(changes);
+
+      if (!isInitialized.current && marketData.length > 0) {
+        isInitialized.current = true;
       }
+
+      return newPriceHistory;
     });
-
-    setPriceHistory(newPriceHistory);
-    setPriceChanges(changes);
-
-    if (!isInitialized.current && marketData.length > 0) {
-      isInitialized.current = true;
-    }
   }, [marketData]);
 
   // Get top gainers (sorted by highest positive change)

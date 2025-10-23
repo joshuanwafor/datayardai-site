@@ -7,12 +7,7 @@ import { useMarketData } from '../hooks/useMarketData';
 import { useMarketAnalytics } from '../hooks/useMarketAnalytics';
 import { usePriceHistory } from '../hooks/usePriceHistory';
 import { ConnectionStatus } from '../components/ConnectionStatus';
-import { MarketTicker } from '../components/MarketTicker';
 import { ArbitrageOpportunities } from '../components/ArbitrageOpportunities';
-import { PairDetails } from '../components/PairDetails';
-import { MarketOverview } from '../components/MarketOverview';
-import { ArbitrageHeatmap } from '../components/ArbitrageHeatmap';
-import { PriceChart } from '../components/PriceChart';
 import { CoinCapDataView } from '../components/CoinCapDataView';
 import { PublicFormatView } from '../components/PublicFormatView';
 import { LogOut } from 'lucide-react';
@@ -43,15 +38,6 @@ export default function AppPage() {
 
   const { frame, isConnected, error, reconnectAttempts, reconnect, startStream, testConnection } = useMarketStream();
   const { marketData, coinCapFormatData } = useMarketData(frame?.data.all_exchange_prices || {});
-
-  const analytics = useMarketAnalytics(marketData, frame?.data.opportunities || []);
-  const { topGainers, topLosers } = usePriceHistory(marketData);
-  const [selectedPair, setSelectedPair] = useState<string | undefined>();
-
-  const selectedMarketData = selectedPair
-    ? marketData.find(m => m.pair === selectedPair) ?? null
-    : null;
-
   // Show loading state while checking authentication
   if (isLoading) {
     return (
@@ -117,8 +103,8 @@ export default function AppPage() {
                 <button
                   onClick={() => setActiveTab('coincap')}
                   className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'coincap'
-                      ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                 >
                   CoinCap Format
@@ -129,8 +115,8 @@ export default function AppPage() {
                 <button
                   onClick={() => setActiveTab('public')}
                   className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'public'
-                      ? 'border-green-500 text-green-600 dark:text-green-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    ? 'border-green-500 text-green-600 dark:text-green-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                 >
                   Public Format
