@@ -32,7 +32,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
   const { publicOpportunities, coinCapOpportunities } = useMemo(() => {
     const publicOps: Opportunity[] = [];
     const coinCapOps: CoinCapOpportunity[] = [];
-    
+
     opportunities.forEach(opp => {
       if (isPublicOpportunity(opp)) {
         publicOps.push(opp);
@@ -40,7 +40,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
         coinCapOps.push(opp);
       }
     });
-    
+
     return { publicOpportunities: publicOps, coinCapOpportunities: coinCapOps };
   }, [opportunities]);
 
@@ -57,7 +57,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
@@ -66,7 +66,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
   // Filter and sort PUBLIC opportunities
   const filteredAndSortedPublicOps = useMemo(() => {
-    const filtered = publicOpportunities.filter(opp => 
+    const filtered = publicOpportunities.filter(opp =>
       opp.pair.toLowerCase().includes(filterPair.toLowerCase())
     );
 
@@ -97,11 +97,11 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? (aValue as number) - (bValue as number)
           : (bValue as number) - (aValue as number);
       }
@@ -112,7 +112,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
   // Filter and sort COINCAP opportunities
   const filteredAndSortedCoinCapOps = useMemo(() => {
-    const filtered = coinCapOpportunities.filter(opp => 
+    const filtered = coinCapOpportunities.filter(opp =>
       opp.symbol.toLowerCase().includes(filterPair.toLowerCase())
     );
 
@@ -143,11 +143,11 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       } else {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? (aValue as number) - (bValue as number)
           : (bValue as number) - (aValue as number);
       }
@@ -203,22 +203,20 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setActiveTab('public')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-              activeTab === 'public'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'public'
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-            }`}
+              }`}
           >
             <Globe className="w-4 h-4" />
             Public ({publicOpportunities.length})
           </button>
           <button
             onClick={() => setActiveTab('coincap')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-              activeTab === 'coincap'
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'coincap'
                 ? 'bg-purple-500 text-white'
                 : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
-            }`}
+              }`}
           >
             <Coins className="w-4 h-4" />
             CoinCap ({coinCapOpportunities.length})
@@ -237,7 +235,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
               className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Filter size={16} className="text-gray-400" />
             <select
@@ -282,7 +280,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                     <div className="flex items-center gap-2">
                       <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -295,7 +293,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
                       <div>
@@ -309,27 +307,25 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="text-right ml-6">
-                  <div className={`text-2xl font-bold mb-1 ${
-                    opp.profit_percentage >= 1 
+                  <div className={`text-2xl font-bold mb-1 ${opp.profit_percentage >= 1
                       ? 'text-green-600 dark:text-green-400'
                       : opp.profit_percentage >= 0.5
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}>
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`}>
                     {opp.profit_percentage.toFixed(2)}%
                   </div>
                   <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
                     ${formatPrice(opp.profit)}
                   </div>
-                  <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${
-                    opp.profit_percentage >= 1 
+                  <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.profit_percentage >= 1
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                       : opp.profit_percentage >= 0.5
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                  }`}>
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
                     {opp.profit_percentage >= 1 ? 'High Profit' : opp.profit_percentage >= 0.5 ? 'Medium Profit' : 'Low Profit'}
                   </div>
                 </div>
@@ -359,7 +355,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                     <div className="flex items-center gap-2">
                       <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -372,7 +368,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
                       <div>
@@ -397,27 +393,25 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                     <div>Type: <span className="font-medium">{opp.type}</span></div>
                   </div>
                 </div>
-                
+
                 <div className="text-right ml-6">
-                  <div className={`text-2xl font-bold mb-1 ${
-                    opp.percentage_difference >= 1 
+                  <div className={`text-2xl font-bold mb-1 ${opp.percentage_difference >= 1
                       ? 'text-green-600 dark:text-green-400'
                       : opp.percentage_difference >= 0.5
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-gray-600 dark:text-gray-400'
-                  }`}>
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-gray-600 dark:text-gray-400'
+                    }`}>
                     {opp.percentage_difference.toFixed(2)}%
                   </div>
                   <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
                     ${formatPrice(opp.price_difference)}
                   </div>
-                  <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${
-                    opp.percentage_difference >= 1 
+                  <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.percentage_difference >= 1
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                       : opp.percentage_difference >= 0.5
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                  }`}>
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
                     {opp.percentage_difference >= 1 ? 'High Profit' : opp.percentage_difference >= 0.5 ? 'Medium Profit' : 'Low Profit'}
                   </div>
                 </div>
@@ -434,7 +428,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
             onClick={() => setShowAll(!showAll)}
             className="w-full py-2 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            {showAll 
+            {showAll
               ? `Show Less (${maxDisplay} of ${currentTotalCount})`
               : `Show All (${currentTotalCount} opportunities)`
             }

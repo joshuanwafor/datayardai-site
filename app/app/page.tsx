@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useMarketStream } from '../hooks/useMarketStream';
 import { useMarketData } from '../hooks/useMarketData';
 import { useMarketAnalytics } from '../hooks/useMarketAnalytics';
+import { usePriceHistory } from '../hooks/usePriceHistory';
 import { ConnectionStatus } from '../components/ConnectionStatus';
 import { MarketTicker } from '../components/MarketTicker';
 import { ArbitrageOpportunities } from '../components/ArbitrageOpportunities';
@@ -13,15 +14,16 @@ import { MarketOverview } from '../components/MarketOverview';
 import { ArbitrageHeatmap } from '../components/ArbitrageHeatmap';
 import { PriceChart } from '../components/PriceChart';
 import { CoinCapDataView } from '../components/CoinCapDataView';
+import { PublicFormatView } from '../components/PublicFormatView';
 import { LogOut } from 'lucide-react';
 
-type TabType = 'regular' | 'coincap';
+type TabType = 'regular' | 'coincap' | 'public';
 
 export default function AppPage() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<TabType>('regular');
+  const [activeTab, setActiveTab] = useState<TabType>('public');
 
   // Check authentication
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function AppPage() {
   const { marketData, coinCapFormatData } = useMarketData(frame?.data.all_exchange_prices || {});
 
   const analytics = useMarketAnalytics(marketData, frame?.data.opportunities || []);
+  const { topGainers, topLosers } = usePriceHistory(marketData);
   const [selectedPair, setSelectedPair] = useState<string | undefined>();
 
   const selectedMarketData = selectedPair
@@ -79,7 +82,7 @@ export default function AppPage() {
                 Real-time market data and arbitrage opportunities across exchanges
               </p>
             </div>
-            
+
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -91,14 +94,14 @@ export default function AppPage() {
         </header>
 
         {/* Market Overview */}
-        <MarketOverview {...analytics} />
+        {/* <MarketOverview {...analytics} topGainers={topGainers} topLosers={topLosers} /> */}
 
         {/* Tab Navigation */}
         <div className="mb-8">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
             <div className="border-b border-gray-200 dark:border-gray-700">
               <nav className="flex -mb-px">
-                <button
+                {/* <button
                   onClick={() => setActiveTab('regular')}
                   className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'regular'
@@ -110,18 +113,29 @@ export default function AppPage() {
                   <span className="ml-2 px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
                     {marketData.length}
                   </span>
-                </button>
+                </button> */}
                 <button
                   onClick={() => setActiveTab('coincap')}
-                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'coincap'
+                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'coincap'
                       ? 'border-yellow-500 text-yellow-600 dark:text-yellow-400'
                       : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                  }`}
+                    }`}
                 >
                   CoinCap Format
                   <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-full">
                     {coinCapFormatData.length}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('public')}
+                  className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'public'
+                      ? 'border-green-500 text-green-600 dark:text-green-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                >
+                  Public Format
+                  <span className="ml-2 px-2 py-1 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full">
+                    {marketData.length}
                   </span>
                 </button>
               </nav>
@@ -133,29 +147,29 @@ export default function AppPage() {
         {activeTab === 'regular' && (
           <>
             {/* Arbitrage Heatmap */}
-            <div className="mb-8">
+            {/* <div className="mb-8">
               <ArbitrageHeatmap opportunities={frame?.data.opportunities || []} />
-            </div>
+            </div> */}
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
               {/* Market Ticker */}
-              <div className="lg:col-span-2">
+              {/* <div className="lg:col-span-2">
                 <MarketTicker
                   marketData={marketData}
                   selectedPair={selectedPair}
                   onPairSelect={setSelectedPair}
                 />
-              </div>
+              </div> */}
 
               {/* Pair Details */}
-              <div className="lg:col-span-1">
+              {/* <div className="lg:col-span-1">
                 <PairDetails marketData={selectedMarketData} />
-              </div>
+              </div> */}
             </div>
 
             {/* Price Chart for Selected Pair */}
-            {selectedMarketData && (
+            {/* {selectedMarketData && (
               <div className="mb-8">
                 <PriceChart
                   pair={selectedMarketData.pair}
@@ -164,15 +178,7 @@ export default function AppPage() {
                   previousPrice={selectedMarketData.midPrice * 0.98} // Mock previous price
                 />
               </div>
-            )}
-
-            {/* Arbitrage Opportunities */}
-            <div className="mb-8">
-              <ArbitrageOpportunities
-                opportunities={frame?.data.opportunities || []}
-                maxDisplay={15}
-              />
-            </div>
+            )} */}
           </>
         )}
 
@@ -182,6 +188,25 @@ export default function AppPage() {
             <CoinCapDataView data={coinCapFormatData} />
           </div>
         )}
+
+        {/* Public Format Data View */}
+        {activeTab === 'public' && (
+          <div className="mb-8">
+            <PublicFormatView data={marketData} />
+          </div>
+        )}
+
+
+
+        {/* Arbitrage Opportunities */}
+        <div className="mb-8">
+          <ArbitrageOpportunities
+            opportunities={frame?.data.opportunities || []}
+            maxDisplay={15}
+          />
+        </div>
+
+
 
         <center className='my-4 md:w-1/2 mx-auto'>
           <ConnectionStatus

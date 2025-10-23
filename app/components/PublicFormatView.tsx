@@ -1,36 +1,79 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { CoinCapMarketData } from '../hooks/useMarketData';
-import { ChevronLeft, ChevronRight, Search, TrendingUp, TrendingDown } from 'lucide-react';
+import { MarketData } from '../types/streaming';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
-type CoinCapDataViewProps = {
-  data: CoinCapMarketData[];
+type PublicFormatViewProps = {
+  data: MarketData[];
 };
 
-type SortField = 'exchange' | 'symbol' | 'name' | 'price' | 'volume' | 'change24h' | 'marketCap';
+type SortField = 'pair' | 'exchange' | 'ask' | 'bid' | 'last' | 'volume';
 type SortDirection = 'asc' | 'desc';
 
-export function CoinCapDataView({ data }: CoinCapDataViewProps) {
+// Flatten the market data to show each exchange separately
+type FlatMarketData = {
+  pair: string;
+  exchange: string;
+  base: string;
+  quote: string;
+  ask: number;
+  bid: number;
+  last: number;
+  volume: number;
+  spread: number;
+  spreadPercent: number;
+};
+
+export function PublicFormatView({ data }: PublicFormatViewProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<SortField>('volume');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [sortField, setSortField] = useState<SortField>('pair');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  if (data.length === 0) {
+  // Safe number formatter
+  const formatNumber = (num: number | null | undefined, options?: Intl.NumberFormatOptions) => {
+    const value = num ?? 0;
+    if (isNaN(value) || !isFinite(value)) return '0.00';
+    return value.toLocaleString(undefined, options);
+  };
+
+  // Flatten the data structure
+  const flattenedData = useMemo(() => {
+    const flattened: FlatMarketData[] = [];
+    data.forEach((market) => {
+      market.exchanges.forEach((exchangeData) => {
+        flattened.push({
+          pair: market.pair,
+          exchange: exchangeData.exchange,
+          base: exchangeData.base || '',
+          quote: exchangeData.quote || '',
+          ask: exchangeData.ask ?? 0,
+          bid: exchangeData.bid ?? 0,
+          last: exchangeData.last ?? 0,
+          volume: exchangeData.volume ?? 0,
+          spread: exchangeData.spread ?? 0,
+          spreadPercent: exchangeData.spreadPercent ?? 0,
+        });
+      });
+    });
+    return flattened;
+  }, [data]);
+
+  if (flattenedData.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-12 text-center">
         <div className="text-gray-400 dark:text-gray-500 mb-4">
           <svg className="w-20 h-20 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
           </svg>
         </div>
         <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-          All Clear! ✨
+          No Market Data Available
         </h3>
         <p className="text-gray-500 dark:text-gray-400">
-          No CoinCap format data detected. All exchanges are using the standard trading format.
+          Waiting for market data stream to connect...
         </p>
       </div>
     );
@@ -38,10 +81,11 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
 
   // Filter and sort data
   const filteredData = useMemo(() => {
-    let filtered = data.filter(item => 
+    let filtered = flattenedData.filter(item => 
       item.exchange.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      item.pair.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.base.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.quote.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Sort data
@@ -62,7 +106,7 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
     });
 
     return filtered;
-  }, [data, searchTerm, sortField, sortDirection]);
+  }, [flattenedData, searchTerm, sortField, sortDirection]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -75,9 +119,8 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
     setCurrentPage(1);
   }, [searchTerm, itemsPerPage]);
 
-  const uniqueExchanges = new Set(data.map(d => d.exchange)).size;
-  const gainersCount = data.filter(d => d.change24h > 0).length;
-  const losersCount = data.filter(d => d.change24h < 0).length;
+  const uniqueExchanges = new Set(flattenedData.map(d => d.exchange)).size;
+  const uniquePairs = new Set(flattenedData.map(d => d.pair)).size;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -104,14 +147,16 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <span className="text-yellow-500">⚠️</span>
-              CoinCap Format Data
+              <span className="text-blue-500">📊</span>
+              Public Format Data
             </h2>
-        
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Standard market data format with bid/ask pricing
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm font-semibold border border-yellow-200 dark:border-yellow-800">
-              {data.length} total
+            <span className="px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg text-sm font-semibold border border-blue-200 dark:border-blue-800">
+              {flattenedData.length} total
             </span>
             <span className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">
               {filteredData.length} filtered
@@ -127,7 +172,7 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search by exchange, symbol, or name..."
+              placeholder="Search by exchange, pair, base, or quote..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -163,40 +208,43 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
                 Exchange <SortIcon field="exchange" />
               </th>
               <th 
-                onClick={() => handleSort('symbol')}
+                onClick={() => handleSort('pair')}
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
               >
-                Symbol <SortIcon field="symbol" />
+                Pair <SortIcon field="pair" />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Base
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Quote
               </th>
               <th 
-                onClick={() => handleSort('name')}
-                className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-              >
-                Name <SortIcon field="name" />
-              </th>
-              <th 
-                onClick={() => handleSort('price')}
+                onClick={() => handleSort('bid')}
                 className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
               >
-                Price (USD) <SortIcon field="price" />
+                Bid <SortIcon field="bid" />
+              </th>
+              <th 
+                onClick={() => handleSort('ask')}
+                className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+              >
+                Ask <SortIcon field="ask" />
+              </th>
+              <th 
+                onClick={() => handleSort('last')}
+                className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+              >
+                Last <SortIcon field="last" />
               </th>
               <th 
                 onClick={() => handleSort('volume')}
                 className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
               >
-                Volume (24h) <SortIcon field="volume" />
+                Volume <SortIcon field="volume" />
               </th>
-              <th 
-                onClick={() => handleSort('change24h')}
-                className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-              >
-                Change (24h) <SortIcon field="change24h" />
-              </th>
-              <th 
-                onClick={() => handleSort('marketCap')}
-                className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
-              >
-                Market Cap <SortIcon field="marketCap" />
+              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                Spread
               </th>
             </tr>
           </thead>
@@ -205,45 +253,47 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
               <tr key={`${item.exchange}-${item.pair}-${idx}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <td className="px-4 py-4 text-gray-900 dark:text-white font-semibold capitalize">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     {item.exchange}
                   </div>
                 </td>
                 <td className="px-4 py-4 text-gray-900 dark:text-white font-mono font-medium">
-                  {item.symbol}
+                  {item.pair}
                 </td>
-                <td className="px-4 py-4 text-gray-600 dark:text-gray-400 capitalize">
-                  {item.name}
+                <td className="px-4 py-4 text-gray-600 dark:text-gray-400 font-mono">
+                  {item.base}
+                </td>
+                <td className="px-4 py-4 text-gray-600 dark:text-gray-400 font-mono">
+                  {item.quote}
+                </td>
+                <td className="px-4 py-4 text-right text-green-600 dark:text-green-400 font-mono font-medium">
+                  ${formatNumber(item.bid, { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 8 
+                  })}
+                </td>
+                <td className="px-4 py-4 text-right text-red-600 dark:text-red-400 font-mono font-medium">
+                  ${formatNumber(item.ask, { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 8 
+                  })}
                 </td>
                 <td className="px-4 py-4 text-right text-gray-900 dark:text-white font-mono font-medium">
-                  ${item.price.toLocaleString(undefined, { 
+                  ${formatNumber(item.last, { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 8 
                   })}
                 </td>
                 <td className="px-4 py-4 text-right text-gray-600 dark:text-gray-400 font-mono">
-                  ${item.volume.toLocaleString(undefined, { 
-                    maximumFractionDigits: 0 
+                  {formatNumber(item.volume, { 
+                    maximumFractionDigits: 2 
                   })}
                 </td>
-                <td className="px-4 py-4 text-right">
-                  <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                    item.change24h >= 0 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
-                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                  }`}>
-                    {item.change24h >= 0 ? (
-                      <TrendingUp className="w-3 h-3" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3" />
-                    )}
-                    {item.change24h >= 0 ? '+' : ''}{item.change24h.toFixed(2)}%
-                  </div>
-                </td>
-                <td className="px-4 py-4 text-right text-gray-600 dark:text-gray-400 font-mono">
-                  ${item.marketCap.toLocaleString(undefined, { 
-                    maximumFractionDigits: 0 
-                  })}
+                <td className="px-4 py-4 text-right text-gray-600 dark:text-gray-400 font-mono text-xs">
+                  ${(item.spread ?? 0).toFixed(4)}
+                  <span className="text-gray-500 ml-1">
+                    ({(item.spreadPercent ?? 0).toFixed(2)}%)
+                  </span>
                 </td>
               </tr>
             ))}
@@ -325,17 +375,17 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
 
       {/* Stats Summary */}
       <div className="px-6 py-6 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
-              {data.length}
+              {flattenedData.length}
             </div>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
-              Total Pairs
+              Total Entries
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
               {uniqueExchanges}
             </div>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
@@ -343,25 +393,11 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-                {gainersCount}
-              </div>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+              {uniquePairs}
             </div>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
-              Gainers (24h)
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2">
-              <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
-              <div className="text-3xl font-bold text-red-600 dark:text-red-400">
-                {losersCount}
-              </div>
-            </div>
-            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
-              Losers (24h)
+              Trading Pairs
             </div>
           </div>
         </div>

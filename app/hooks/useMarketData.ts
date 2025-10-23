@@ -115,9 +115,12 @@ function processQuote(
   const market = pairMap.get(pair)!;
   market.exchanges.push({
     exchange,
+    base: quote.base || '',
+    quote: quote.quote || '',
     bid: quote.bid,
     ask: quote.ask,
     last: quote.last,
+    volume: quote.volume || 0,
     spread,
     spreadPercent
   });

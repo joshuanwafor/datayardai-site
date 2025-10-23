@@ -3,7 +3,14 @@
 import { useMemo } from 'react';
 import { MarketData, ArbitrageOpportunity } from '../types/streaming';
 
-export function useMarketAnalytics(marketData: MarketData[], opportunities: ArbitrageOpportunity[]) {
+export type MarketAnalytics = {
+  totalPairs: number;
+  totalExchanges: number;
+  totalOpportunities: number;
+  avgSpread: number;
+};
+
+export function useMarketAnalytics(marketData: MarketData[], opportunities: ArbitrageOpportunity[]): MarketAnalytics {
   return useMemo(() => {
     // Calculate total pairs and exchanges
     const totalPairs = marketData.length;
@@ -21,34 +28,11 @@ export function useMarketAnalytics(marketData: MarketData[], opportunities: Arbi
       ? allSpreads.reduce((sum, spread) => sum + spread, 0) / allSpreads.length 
       : 0;
 
-    // Calculate top gainers and losers (mock data for now - would need price history)
-    const topGainers = marketData
-      .map(market => ({
-        pair: market.pair,
-        change: Math.random() * 10 - 5, // Mock data
-        changePercent: Math.random() * 10 - 5
-      }))
-      .filter(item => item.changePercent > 0)
-      .sort((a, b) => b.changePercent - a.changePercent)
-      .slice(0, 5);
-
-    const topLosers = marketData
-      .map(market => ({
-        pair: market.pair,
-        change: Math.random() * 10 - 5, // Mock data
-        changePercent: Math.random() * 10 - 5
-      }))
-      .filter(item => item.changePercent < 0)
-      .sort((a, b) => a.changePercent - b.changePercent)
-      .slice(0, 5);
-
     return {
       totalPairs,
       totalExchanges,
       totalOpportunities: opportunities.length,
-      avgSpread,
-      topGainers,
-      topLosers
+      avgSpread
     };
   }, [marketData, opportunities]);
 }

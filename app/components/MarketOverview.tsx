@@ -2,21 +2,19 @@
 
 import { TrendingUp, TrendingDown, Activity, BarChart3, Target, ArrowUp, ArrowDown } from 'lucide-react';
 
+type PriceChangeItem = {
+  pair: string;
+  change: number;
+  changePercent: number;
+};
+
 interface MarketOverviewProps {
   totalPairs: number;
   totalExchanges: number;
   totalOpportunities: number;
   avgSpread: number;
-  topGainers: Array<{
-    pair: string;
-    change: number;
-    changePercent: number;
-  }>;
-  topLosers: Array<{
-    pair: string;
-    change: number;
-    changePercent: number;
-  }>;
+  topGainers: PriceChangeItem[];
+  topLosers: PriceChangeItem[];
 }
 
 export function MarketOverview({ 
@@ -104,29 +102,41 @@ export function MarketOverview({
             </p>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {topGainers.slice(0, 5).map((gainer, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-300 font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{gainer.pair}</span>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ${gainer.change.toFixed(2)} change
+            {topGainers.length > 0 ? (
+              <div className="space-y-4">
+                {topGainers.slice(0, 5).map((gainer, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/10 rounded-lg border border-green-200 dark:border-green-800/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-700 dark:text-green-300 font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">{gainer.pair}</span>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          ${gainer.change.toFixed(2)} change
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <ArrowUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                        +{formatPercent(gainer.changePercent)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ArrowUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <span className="text-sm font-bold text-green-600 dark:text-green-400">
-                      +{formatPercent(gainer.changePercent)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  Tracking Price Changes...
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Gainers will appear as prices increase during this session
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -142,29 +152,41 @@ export function MarketOverview({
             </p>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {topLosers.slice(0, 5).map((loser, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-700 dark:text-red-300 font-bold text-sm">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{loser.pair}</span>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ${loser.change.toFixed(2)} change
+            {topLosers.length > 0 ? (
+              <div className="space-y-4">
+                {topLosers.slice(0, 5).map((loser, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-200 dark:border-red-800/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-700 dark:text-red-300 font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">{loser.pair}</span>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          ${loser.change.toFixed(2)} change
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <ArrowDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                      <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                        {formatPercent(loser.changePercent)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ArrowDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-                    <span className="text-sm font-bold text-red-600 dark:text-red-400">
-                      {formatPercent(loser.changePercent)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <TrendingDown className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  Tracking Price Changes...
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Losers will appear as prices decrease during this session
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

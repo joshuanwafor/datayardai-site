@@ -75,9 +75,12 @@ export type MarketData = {
   pair: string;
   exchanges: {
     exchange: string;
+    base: string;
+    quote: string;
     bid: number;
     ask: number;
     last: number;
+    volume: number;
     spread: number;
     spreadPercent: number;
   }[];
