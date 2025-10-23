@@ -289,7 +289,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                           Buy on {opp.buy_exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          ${formatPrice(opp.buy_price)}
+                          {formatPrice(opp.buy_price)}
                         </div>
                       </div>
                     </div>
@@ -301,7 +301,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                           Sell on {opp.sell_exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          ${formatPrice(opp.sell_price)}
+                          {formatPrice(opp.sell_price)}
                         </div>
                       </div>
                     </div>
@@ -318,7 +318,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                     {opp.profit_percentage.toFixed(2)}%
                   </div>
                   <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                    ${formatPrice(opp.profit)}
+                    {formatPrice(opp.profit)}
                   </div>
                   <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.profit_percentage >= 1
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
@@ -364,7 +364,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                           Buy on {opp.lowest.exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          ${formatPrice(opp.lowest.price)}
+                          {formatPrice(opp.lowest.price)}
                         </div>
                       </div>
                     </div>
@@ -376,7 +376,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                           Sell on {opp.highest.exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          ${formatPrice(opp.highest.price)}
+                          {formatPrice(opp.highest.price)}
                         </div>
                       </div>
                     </div>
@@ -404,7 +404,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                     {opp.percentage_difference.toFixed(2)}%
                   </div>
                   <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                    ${formatPrice(opp.price_difference)}
+                      {formatPrice(opp.price_difference)}
                   </div>
                   <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.percentage_difference >= 1
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
