@@ -267,19 +267,19 @@ export function PublicFormatView({ data }: PublicFormatViewProps) {
                   {item.quote}
                 </td>
                 <td className="px-4 py-4 text-right text-green-600 dark:text-green-400 font-mono font-medium">
-                  ${formatNumber(item.bid, { 
+                  {formatNumber(item.bid, { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 8 
                   })}
                 </td>
                 <td className="px-4 py-4 text-right text-red-600 dark:text-red-400 font-mono font-medium">
-                  ${formatNumber(item.ask, { 
+                  {formatNumber(item.ask, { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 8 
                   })}
                 </td>
                 <td className="px-4 py-4 text-right text-gray-900 dark:text-white font-mono font-medium">
-                  ${formatNumber(item.last, { 
+                  {formatNumber(item.last, { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 8 
                   })}
@@ -290,7 +290,7 @@ export function PublicFormatView({ data }: PublicFormatViewProps) {
                   })}
                 </td>
                 <td className="px-4 py-4 text-right text-gray-600 dark:text-gray-400 font-mono text-xs">
-                  ${(item.spread ?? 0).toFixed(4)}
+                  {(item.spread ?? 0).toFixed(4)}
                   <span className="text-gray-500 ml-1">
                     ({(item.spreadPercent ?? 0).toFixed(2)}%)
                   </span>
