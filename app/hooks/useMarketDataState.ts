@@ -225,7 +225,6 @@ class MarketDataState {
     this.disconnect();
     this.connect();
   }
-
   startStream(): void {
     if (this.socket?.connected) {
       console.log('Manually emitting trading/stream event');
@@ -233,13 +232,12 @@ class MarketDataState {
         task: "start_session",
         data: {
           user_id: "6c2c8c80-06fb-4b1e-bf6a-77c7d79962cb",
-          opportunities_limit: 10
+          opportunities_limit: 50
         }
       };
       this.socket.emit('trading/stream', payload);
     }
   }
-
   emit(event: string, data?: unknown): void {
     if (this.socket) {
       this.socket.emit(event, data);
@@ -248,7 +246,6 @@ class MarketDataState {
       console.log('No socket connection');
     }
   }
-
   on(event: string, callback: (data: unknown) => void): void {
     if (this.socket) {
       this.socket.on(event, callback);
@@ -256,7 +253,6 @@ class MarketDataState {
       console.log('No socket connection');
     }
   }
-
   // Manual connection test
   testConnection(): void {
     console.log('Testing connection...');
@@ -268,7 +264,6 @@ class MarketDataState {
       console.log('No socket instance');
     }
   }
-
 }
 
 // Create singleton instance

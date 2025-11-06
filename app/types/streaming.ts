@@ -44,10 +44,12 @@ export type CoinCapOpportunity = {
   lowest: {
     price: number;
     exchange: string;
+    volume_24h_usd: string;
   };
   highest: {
     price: number;
     exchange: string;
+    volume_24h_usd: string;
   };
   price_difference: number;
   percentage_difference: number;
@@ -55,10 +57,49 @@ export type CoinCapOpportunity = {
   timestamp: string;
   via_currency: string | null;
   confidence_score: number;
+  profit_percentage: number;
+  profit_pct: number;
+  volume_24h: number;
+  volume_24h_usd: number;
+  db_created_at: string;
+};
+
+
+
+export type CrossRateOpportunity = {
+  type: "cross_rate";
+  pair: string;
+  via: string;
+  leg1: {
+    exchange: string;
+    pair: string;
+    price: number;
+  };
+  leg2: {
+    exchange: string;
+    pair: string;
+    price: number;
+  };
+  direct: {
+    exchange: string;
+    pair: string;
+    price: number;
+  };
+  implied_rate: number;
+  direct_rate: number;
+  diff: number;
+  profit: number;
+  profit_percentage: number;
+  buy_exchange: string;
+  sell_exchange: string;
+  buy_price: number;
+  sell_price: number;
+  timestamp: string;
+  db_created_at: string;
 };
 
 // Union type for both formats
-export type ArbitrageOpportunity = Opportunity | CoinCapOpportunity;
+export type ArbitrageOpportunity = Opportunity | CoinCapOpportunity | CrossRateOpportunity;
 
 export type StreamFrame = {
   status: string;
