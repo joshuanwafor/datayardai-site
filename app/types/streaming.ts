@@ -26,6 +26,7 @@ export type CoinCapQuote = {
 // Public endpoint format
 export type Opportunity = {
   type: "direct";
+  seg: string;
   pair: string;
   buy_exchange: string;
   sell_exchange: string;
@@ -40,6 +41,7 @@ export type Opportunity = {
 // CoinCap format
 export type CoinCapOpportunity = {
   type: string;
+  seg: string;
   symbol: string;
   lowest: {
     price: number;
@@ -68,6 +70,7 @@ export type CoinCapOpportunity = {
 
 export type CrossRateOpportunity = {
   type: "cross_rate";
+  seg: string;
   pair: string;
   via: string;
   leg1: {

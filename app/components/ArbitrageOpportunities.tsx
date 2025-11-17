@@ -11,11 +11,11 @@ interface ArbitrageOpportunitiesProps {
 
 // Type guard functions
 function isCrossRateOpportunity(opp: ArbitrageOpportunity): opp is CrossRateOpportunity {
-  return 'via' in opp && 'leg1' in opp && 'leg2' in opp && 'direct' in opp;
+  return opp.type === 'cross_rate';
 }
 
 function isCoinCapOpportunity(opp: ArbitrageOpportunity): opp is CoinCapOpportunity {
-  return 'symbol' in opp && 'lowest' in opp && 'highest' in opp;
+  return opp.seg=='coincap';
 }
 
 function isPublicOpportunity(opp: ArbitrageOpportunity): opp is Opportunity {
