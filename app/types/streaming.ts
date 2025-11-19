@@ -46,12 +46,14 @@ export type CoinCapOpportunity = {
   lowest: {
     price: number;
     exchange: string;
-    volume_24h_usd: string;
+    volume_24h_usd: string | number;
+    path?: string;
   };
   highest: {
     price: number;
     exchange: string;
-    volume_24h_usd: string;
+    volume_24h_usd: string | number;
+    path?: string;
   };
   price_difference: number;
   percentage_difference: number;
@@ -66,39 +68,42 @@ export type CoinCapOpportunity = {
   db_created_at: string;
 };
 
-
-
+// Public cross-rate format (from public segment)
 export type CrossRateOpportunity = {
   type: "cross_rate";
   seg: string;
-  pair: string;
-  via: string;
-  leg1: {
+  strategy?: string;
+  path?: string;
+  base_currency?: string;
+  leg1?: {
+    exchange: string;
+    pair: string;
+    action: string;
+    price: number;
+    description: string;
+  };
+  leg2?: {
+    exchange: string;
+    pair: string;
+    action: string;
+    price: number;
+    description: string;
+  };
+  direct_alternative?: {
     exchange: string;
     pair: string;
     price: number;
+    description: string;
   };
-  leg2: {
-    exchange: string;
-    pair: string;
-    price: number;
-  };
-  direct: {
-    exchange: string;
-    pair: string;
-    price: number;
-  };
-  implied_rate: number;
-  direct_rate: number;
-  diff: number;
-  profit: number;
+  triangular_yield?: number;
+  direct_yield?: number;
+  profit_per_unit?: number;
   profit_percentage: number;
-  buy_exchange: string;
-  sell_exchange: string;
-  buy_price: number;
-  sell_price: number;
+  implied_rate?: number;
+  actual_rate?: number;
   timestamp: string;
   db_created_at: string;
+  db_updated_at?: string;
 };
 
 // Union type for both formats

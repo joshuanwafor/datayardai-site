@@ -39,12 +39,13 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     const crossRateOps: CrossRateOpportunity[] = [];
 
     opportunities.forEach(opp => {
-      if (isCrossRateOpportunity(opp)) {
+      // Check seg first - if it's coincap, it goes to coincap tab regardless of type
+      if (isCoinCapOpportunity(opp)) {
+        coinCapOps.push(opp);
+      } else if (isCrossRateOpportunity(opp)) {
         crossRateOps.push(opp);
       } else if (isPublicOpportunity(opp)) {
         publicOps.push(opp);
-      } else if (isCoinCapOpportunity(opp)) {
-        coinCapOps.push(opp);
       }
     });
 
@@ -55,25 +56,6 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     };
   }, [opportunities]);
 
-  const formatPrice = (price: number) => {
-    if (!price || isNaN(price) || !isFinite(price)) return '0.00';
-    if (price < 0.01) return price.toExponential(2);
-    if (price < 1) return price.toFixed(4);
-    if (price < 100) return price.toFixed(2);
-    return price.toFixed(0);
-  };
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
-    return date.toLocaleDateString();
-  };
 
   // Filter and sort PUBLIC opportunities
   const filteredAndSortedPublicOps = useMemo(() => {
@@ -169,9 +151,19 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
   // Filter and sort CROSSRATE opportunities
   const filteredAndSortedCrossRateOps = useMemo(() => {
-    const filtered = crossRateOpportunities.filter(opp =>
-      opp.pair.toLowerCase().includes(filterPair.toLowerCase())
-    );
+    const filtered = crossRateOpportunities.filter(opp => {
+      const searchText = filterPair.toLowerCase();
+      const baseCurrency = opp.base_currency?.toLowerCase() ?? '';
+      const path = opp.path?.toLowerCase() ?? '';
+      const strategy = opp.strategy?.toLowerCase() ?? '';
+      const leg1Pair = opp.leg1?.pair?.toLowerCase() ?? '';
+      const leg2Pair = opp.leg2?.pair?.toLowerCase() ?? '';
+      return baseCurrency.includes(searchText) || 
+             path.includes(searchText) || 
+             strategy.includes(searchText) ||
+             leg1Pair.includes(searchText) ||
+             leg2Pair.includes(searchText);
+    });
 
     filtered.sort((a, b) => {
       let aValue: string | number;
@@ -179,8 +171,8 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
       switch (sortBy) {
         case 'profit':
-          aValue = a.profit;
-          bValue = b.profit;
+          aValue = a.profit_per_unit ?? 0;
+          bValue = b.profit_per_unit ?? 0;
           break;
         case 'percentage':
           aValue = a.profit_percentage;
@@ -191,8 +183,8 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
           bValue = new Date(b.timestamp).getTime();
           break;
         case 'pair':
-          aValue = a.pair;
-          bValue = b.pair;
+          aValue = a.base_currency ?? a.path ?? '';
+          bValue = b.base_currency ?? b.path ?? '';
           break;
         default:
           aValue = a.profit_percentage;
@@ -343,7 +335,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                         {opp.pair}
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatTime(opp.timestamp)}
+                        {opp.timestamp}
                       </p>
                     </div>
                   </div>
@@ -356,7 +348,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                           Buy on {opp.buy_exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          {formatPrice(opp.buy_price)}
+                          {opp.buy_price}
                         </div>
                       </div>
                     </div>
@@ -368,7 +360,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                           Sell on {opp.sell_exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          {formatPrice(opp.sell_price)}
+                          {opp.sell_price}
                         </div>
                       </div>
                     </div>
@@ -385,7 +377,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                     {opp.profit_percentage.toFixed(2)}%
                   </div>
                   <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                    {formatPrice(opp.profit)}
+                    {opp.profit}
                   </div>
                   <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.profit_percentage >= 1
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
@@ -418,7 +410,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                         {opp.symbol} <span className="text-xs text-gray-500">({opp.currency})</span>
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatTime(opp.timestamp)}
+                        {opp.timestamp}
                       </p>
                     </div>
                   </div>
@@ -428,11 +420,16 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                       <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
                       <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          Buy on {opp.lowest.exchange}
+                          Lowest on {opp.lowest.exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          {formatPrice(opp.lowest.price)}
+                          {opp.lowest.price}
                         </div>
+                        {opp.lowest.path && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {opp.lowest.path}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -440,17 +437,22 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                       <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
                       <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          Sell on {opp.highest.exchange}
+                          Highest on {opp.highest.exchange}
                         </div>
                         <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                          {formatPrice(opp.highest.price)}
+                          {opp.highest.price}
                         </div>
+                        {opp.highest.path && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {opp.highest.path}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* Additional CoinCap info */}
-                  <div className="mt-3 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
                     {opp.via_currency && (
                       <div>Via: <span className="font-medium">{opp.via_currency}</span></div>
                     )}
@@ -471,7 +473,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                     {opp.percentage_difference.toFixed(2)}%
                   </div>
                   <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                      {formatPrice(opp.price_difference)}
+                      {opp.price_difference}
                   </div>
                   <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.percentage_difference >= 1
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
@@ -491,113 +493,145 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
       {/* CROSS-RATE Opportunities List */}
       {activeTab === 'crossrate' && (
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {filteredAndSortedCrossRateOps.map((opp, index) => (
-            <div key={`${opp.pair}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {opp.pair.substring(0, 2)}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        {opp.pair}
-                        <span className="text-xs font-normal px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
-                          via {opp.via}
-                        </span>
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatTime(opp.timestamp)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 mt-3">
-                    {/* Leg 1 */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
-                        1
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {opp.leg1.pair} on {opp.leg1.exchange}
-                        </div>
-                        <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                          {formatPrice(opp.leg1.price)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Leg 2 */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
-                        2
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {opp.leg2.pair} on {opp.leg2.exchange}
-                        </div>
-                        <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                          {formatPrice(opp.leg2.price)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Direct Rate */}
-                    <div className="flex items-center gap-2 text-sm border-t pt-3 mt-3 dark:border-gray-600">
-                      <ArrowUpRight className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          Direct on {opp.direct.exchange}
-                        </div>
-                        <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                          {formatPrice(opp.direct.price)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Rate comparison */}
-                    <div className="flex gap-4 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-500">Implied Rate:</span>{' '}
-                        <span className="font-mono font-medium text-gray-900 dark:text-white">{formatPrice(opp.implied_rate)}</span>
+          {filteredAndSortedCrossRateOps.map((opp, index) => {
+            const displayName = opp.base_currency || opp.path || 'Unknown';
+            const displayInitials = displayName.substring(0, 2).toUpperCase();
+            
+            return (
+              <div key={`${opp.base_currency ?? 'unknown'}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        {displayInitials}
                       </div>
                       <div>
-                        <span className="text-gray-500 dark:text-gray-500">Direct Rate:</span>{' '}
-                        <span className="font-mono font-medium text-gray-900 dark:text-white">{formatPrice(opp.direct_rate)}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-500">Difference:</span>{' '}
-                        <span className="font-mono font-medium text-gray-900 dark:text-white">{formatPrice(opp.diff)}</span>
+                        <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                          {displayName}
+                          {opp.path && (
+                            <span className="text-xs font-normal px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
+                              {opp.path}
+                            </span>
+                          )}
+                        </h3>
+                        {opp.strategy && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {opp.strategy}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {opp.timestamp}
+                        </p>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="text-right ml-6">
-                  <div className={`text-2xl font-bold mb-1 ${opp.profit_percentage >= 1
-                      ? 'text-green-600 dark:text-green-400'
-                      : opp.profit_percentage >= 0.5
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-400'
-                    }`}>
-                    {opp.profit_percentage.toFixed(2)}%
+                    <div className="space-y-3 mt-3">
+                      {/* Leg 1 */}
+                      {opp.leg1 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                            1
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {opp.leg1.description || `${opp.leg1.action || ''} ${opp.leg1.pair || ''}`.trim()} on {opp.leg1.exchange || 'Unknown'}
+                            </div>
+                            <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                              {opp.leg1.price}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Leg 2 */}
+                      {opp.leg2 && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
+                            2
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {opp.leg2.description || `${opp.leg2.action || ''} ${opp.leg2.pair || ''}`.trim()} on {opp.leg2.exchange || 'Unknown'}
+                            </div>
+                            <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                              {opp.leg2.price}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Direct Alternative */}
+                      {opp.direct_alternative && (
+                        <div className="flex items-center gap-2 text-sm border-t pt-3 mt-3 dark:border-gray-600">
+                          <ArrowUpRight className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {opp.direct_alternative.description || `Direct ${opp.direct_alternative.pair || ''}`} on {opp.direct_alternative.exchange || 'Unknown'}
+                            </div>
+                            <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                              {opp.direct_alternative.price}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Rate comparison */}
+                      {(opp.implied_rate !== undefined || opp.actual_rate !== undefined || opp.triangular_yield !== undefined || opp.direct_yield !== undefined) && (
+                        <div className="flex flex-wrap gap-4 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                          {opp.implied_rate !== undefined && (
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-500">Implied Rate:</span>{' '}
+                              <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.implied_rate}</span>
+                            </div>
+                          )}
+                          {opp.actual_rate !== undefined && (
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-500">Actual Rate:</span>{' '}
+                              <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.actual_rate}</span>
+                            </div>
+                          )}
+                          {opp.triangular_yield !== undefined && (
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-500">Triangular Yield:</span>{' '}
+                              <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.triangular_yield.toFixed(2)}%</span>
+                            </div>
+                          )}
+                          {opp.direct_yield !== undefined && (
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-500">Direct Yield:</span>{' '}
+                              <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.direct_yield.toFixed(2)}%</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                    {formatPrice(opp.profit)}
-                  </div>
-                  <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.profit_percentage >= 1
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : opp.profit_percentage >= 0.5
-                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
-                    }`}>
-                    {opp.profit_percentage >= 1 ? 'High Profit' : opp.profit_percentage >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+
+                  <div className="text-right ml-6">
+                    <div className={`text-2xl font-bold mb-1 ${opp.profit_percentage >= 1
+                        ? 'text-green-600 dark:text-green-400'
+                        : opp.profit_percentage >= 0.5
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`}>
+                      {opp.profit_percentage.toFixed(2)}%
+                    </div>
+                    <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                      {opp.profit_per_unit ?? 0}
+                    </div>
+                    <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.profit_percentage >= 1
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                        : opp.profit_percentage >= 0.5
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                      {opp.profit_percentage >= 1 ? 'High Profit' : opp.profit_percentage >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
