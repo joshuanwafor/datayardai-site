@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArbitrageOpportunity, Opportunity, CoinCapOpportunity } from '../types/streaming';
-import { TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Filter, Search, Coins, Globe } from 'lucide-react';
+import { ArbitrageOpportunity, Opportunity, CoinCapOpportunity, CrossRateOpportunity } from '../types/streaming';
+import { TrendingUp, Clock, DollarSign, ArrowUpRight, ArrowDownRight, Filter, Search, Coins, Globe, Shuffle } from 'lucide-react';
 
 interface ArbitrageOpportunitiesProps {
   opportunities: ArbitrageOpportunity[];
@@ -11,11 +11,15 @@ interface ArbitrageOpportunitiesProps {
 
 // Type guard functions
 function isCoinCapOpportunity(opp: ArbitrageOpportunity): opp is CoinCapOpportunity {
-  return opp.seg=='coincap';
+  return opp.seg === 'coincap';
 }
 
 function isPublicOpportunity(opp: ArbitrageOpportunity): opp is Opportunity {
-  return opp.seg=='public';
+  return opp.seg === 'public' && opp.type !== 'cross_rate';
+}
+
+function isCrossRateOpportunity(opp: ArbitrageOpportunity): opp is CrossRateOpportunity | CoinCapOpportunity {
+  return opp.type === 'cross_rate';
 }
 
 export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: ArbitrageOpportunitiesProps) {
@@ -26,25 +30,35 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterPair, setFilterPair] = useState<string>('');
   const [showAll, setShowAll] = useState(false);
-  const [activeTab, setActiveTab] = useState<'public' | 'coincap'>('public');
+  const [activeTab, setActiveTab] = useState<'public' | 'coincap' | 'crossrate'>('public');
 
   // Separate opportunities by type
-  const { publicOpportunities, coinCapOpportunities } = useMemo(() => {
+  const { publicOpportunities, coinCapOpportunities, crossRateOpportunities } = useMemo(() => {
     const publicOps: Opportunity[] = [];
     const coinCapOps: CoinCapOpportunity[] = [];
+    const crossRateOps: (CrossRateOpportunity | CoinCapOpportunity)[] = [];
 
     opportunities.forEach(opp => {
-      // Check seg first - if it's coincap, it goes to coincap tab regardless of type
+      // CoinCap tab: all opportunities with seg === 'coincap'
       if (isCoinCapOpportunity(opp)) {
         coinCapOps.push(opp);
-      } else if (isPublicOpportunity(opp)) {
+      }
+      
+      // Cross-Rate tab: all opportunities with type === 'cross_rate'
+      if (isCrossRateOpportunity(opp)) {
+        crossRateOps.push(opp);
+      }
+      
+      // Public tab: only direct public opportunities
+      if (isPublicOpportunity(opp)) {
         publicOps.push(opp);
       }
     });
 
     return { 
       publicOpportunities: publicOps, 
-      coinCapOpportunities: coinCapOps
+      coinCapOpportunities: coinCapOps,
+      crossRateOpportunities: crossRateOps
     };
   }, [opportunities]);
 
@@ -142,8 +156,86 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
   }, [coinCapOpportunities, sortBy, sortOrder, filterPair, showAll, maxDisplay]);
 
 
-  const currentOpportunities = activeTab === 'public' ? filteredAndSortedPublicOps : filteredAndSortedCoinCapOps;
-  const currentTotalCount = activeTab === 'public' ? publicOpportunities.length : coinCapOpportunities.length;
+  // Filter and sort CROSS-RATE opportunities
+  const filteredAndSortedCrossRateOps = useMemo(() => {
+    const filtered = crossRateOpportunities.filter(opp => {
+      const searchText = filterPair.toLowerCase();
+      // Handle public cross-rate opportunities
+      if ('base_currency' in opp) {
+        const baseCurrency = opp.base_currency?.toLowerCase() ?? '';
+        const path = opp.path?.toLowerCase() ?? '';
+        const strategy = opp.strategy?.toLowerCase() ?? '';
+        const leg1Pair = opp.leg1?.pair?.toLowerCase() ?? '';
+        const leg2Pair = opp.leg2?.pair?.toLowerCase() ?? '';
+        return baseCurrency.includes(searchText) || 
+               path.includes(searchText) || 
+               strategy.includes(searchText) ||
+               leg1Pair.includes(searchText) ||
+               leg2Pair.includes(searchText);
+      } else if ('symbol' in opp) {
+        // Handle coincap cross-rate opportunities
+        const symbol = opp.symbol?.toLowerCase() ?? '';
+        const viaCurrency = opp.via_currency?.toLowerCase() ?? '';
+        return symbol.includes(searchText) || viaCurrency.includes(searchText);
+      }
+      return false;
+    });
+
+    filtered.sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortBy) {
+        case 'profit':
+          if ('profit_per_unit' in a && 'profit_per_unit' in b) {
+            aValue = a.profit_per_unit ?? 0;
+            bValue = b.profit_per_unit ?? 0;
+          } else {
+            aValue = ('price_difference' in a ? a.price_difference : 0);
+            bValue = ('price_difference' in b ? b.price_difference : 0);
+          }
+          break;
+        case 'percentage':
+          aValue = a.profit_percentage;
+          bValue = b.profit_percentage;
+          break;
+        case 'time':
+          aValue = new Date(a.timestamp).getTime();
+          bValue = new Date(b.timestamp).getTime();
+          break;
+        case 'pair':
+          if ('base_currency' in a && 'base_currency' in b) {
+            aValue = a.base_currency ?? a.path ?? '';
+            bValue = b.base_currency ?? b.path ?? '';
+          } else if ('symbol' in a && 'symbol' in b) {
+            aValue = a.symbol ?? '';
+            bValue = b.symbol ?? '';
+          } else {
+            aValue = '';
+            bValue = '';
+          }
+          break;
+        default:
+          aValue = a.profit_percentage;
+          bValue = b.profit_percentage;
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      } else {
+        return sortOrder === 'asc'
+          ? (aValue as number) - (bValue as number)
+          : (bValue as number) - (aValue as number);
+      }
+    });
+
+    return showAll ? filtered : filtered.slice(0, maxDisplay);
+  }, [crossRateOpportunities, sortBy, sortOrder, filterPair, showAll, maxDisplay]);
+
+  const currentOpportunities = activeTab === 'public' ? filteredAndSortedPublicOps : activeTab === 'coincap' ? filteredAndSortedCoinCapOps : filteredAndSortedCrossRateOps;
+  const currentTotalCount = activeTab === 'public' ? publicOpportunities.length : activeTab === 'coincap' ? coinCapOpportunities.length : crossRateOpportunities.length;
 
   if (opportunities.length === 0) {
     return (
@@ -180,7 +272,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
               Arbitrage Opportunities
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {opportunities.length} opportunities found ({publicOpportunities.length} Public, {coinCapOpportunities.length} CoinCap)
+              {opportunities.length} opportunities found ({publicOpportunities.length} Public, {coinCapOpportunities.length} CoinCap, {crossRateOpportunities.length} Cross-Rate)
             </p>
           </div>
         </div>
@@ -207,6 +299,16 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
             <Coins className="w-4 h-4" />
             CoinCap ({coinCapOpportunities.length})
           </button>
+          <button
+            onClick={() => setActiveTab('crossrate')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'crossrate'
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
+              }`}
+          >
+            <Shuffle className="w-4 h-4" />
+            Cross-Rate ({crossRateOpportunities.length})
+          </button>
         </div>
 
         {/* Controls */}
@@ -215,7 +317,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder={activeTab === 'coincap' ? "Filter by symbol..." : "Filter by pair..."}
+              placeholder={activeTab === 'coincap' ? "Filter by symbol..." : activeTab === 'crossrate' ? "Filter by pair/symbol..." : "Filter by pair..."}
               value={filterPair}
               onChange={(e) => setFilterPair(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -417,6 +519,250 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
         </div>
       )}
 
+      {/* CROSS-RATE Opportunities List */}
+      {activeTab === 'crossrate' && (
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {filteredAndSortedCrossRateOps.map((opp, index) => {
+            // Check if it's a public cross-rate or coincap cross-rate
+            const isPublicCrossRate = 'base_currency' in opp;
+            
+            if (isPublicCrossRate) {
+              // Public cross-rate opportunity
+              const displayName = opp.base_currency || opp.path || 'Unknown';
+              const displayInitials = displayName.substring(0, 2).toUpperCase();
+              
+              return (
+                <div key={`${opp.base_currency ?? 'unknown'}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          {displayInitials}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            {displayName}
+                            {opp.path && (
+                              <span className="text-xs font-normal px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
+                                {opp.path}
+                              </span>
+                            )}
+                          </h3>
+                          {opp.strategy && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {opp.strategy}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {opp.timestamp}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3 mt-3">
+                        {/* Leg 1 */}
+                        {opp.leg1 && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                              1
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 dark:text-white">
+                                {opp.leg1.description || `${opp.leg1.action || ''} ${opp.leg1.pair || ''}`.trim()} on {opp.leg1.exchange || 'Unknown'}
+                              </div>
+                              <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                {opp.leg1.price}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Leg 2 */}
+                        {opp.leg2 && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 font-bold text-xs">
+                              2
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 dark:text-white">
+                                {opp.leg2.description || `${opp.leg2.action || ''} ${opp.leg2.pair || ''}`.trim()} on {opp.leg2.exchange || 'Unknown'}
+                              </div>
+                              <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                {opp.leg2.price}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Direct Alternative */}
+                        {opp.direct_alternative && (
+                          <div className="flex items-center gap-2 text-sm border-t pt-3 mt-3 dark:border-gray-600">
+                            <ArrowUpRight className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 dark:text-white">
+                                {opp.direct_alternative.description || `Direct ${opp.direct_alternative.pair || ''}`} on {opp.direct_alternative.exchange || 'Unknown'}
+                              </div>
+                              <div className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                {opp.direct_alternative.price}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Rate comparison */}
+                        {(opp.implied_rate !== undefined || opp.actual_rate !== undefined || opp.triangular_yield !== undefined || opp.direct_yield !== undefined) && (
+                          <div className="flex flex-wrap gap-4 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                            {opp.implied_rate !== undefined && (
+                              <div>
+                                <span className="text-gray-500 dark:text-gray-500">Implied Rate:</span>{' '}
+                                <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.implied_rate}</span>
+                              </div>
+                            )}
+                            {opp.actual_rate !== undefined && (
+                              <div>
+                                <span className="text-gray-500 dark:text-gray-500">Actual Rate:</span>{' '}
+                                <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.actual_rate}</span>
+                              </div>
+                            )}
+                            {opp.triangular_yield !== undefined && (
+                              <div>
+                                <span className="text-gray-500 dark:text-gray-500">Triangular Yield:</span>{' '}
+                                <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.triangular_yield.toFixed(2)}%</span>
+                              </div>
+                            )}
+                            {opp.direct_yield !== undefined && (
+                              <div>
+                                <span className="text-gray-500 dark:text-gray-500">Direct Yield:</span>{' '}
+                                <span className="font-mono font-medium text-gray-900 dark:text-white">{opp.direct_yield.toFixed(2)}%</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right ml-6">
+                      <div className={`text-2xl font-bold mb-1 ${opp.profit_percentage >= 1
+                          ? 'text-green-600 dark:text-green-400'
+                          : opp.profit_percentage >= 0.5
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}>
+                        {opp.profit_percentage.toFixed(2)}%
+                      </div>
+                      <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                        {opp.profit_per_unit ?? 0}
+                      </div>
+                      <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${opp.profit_percentage >= 1
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : opp.profit_percentage >= 0.5
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        }`}>
+                        {opp.profit_percentage >= 1 ? 'High Profit' : opp.profit_percentage >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            } else if ('symbol' in opp) {
+              // CoinCap cross-rate opportunity
+              const coinCapOpp = opp as CoinCapOpportunity;
+              return (
+                <div key={`${coinCapOpp.symbol}-${coinCapOpp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                          {coinCapOpp.symbol.substring(0, 2)}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
+                            {coinCapOpp.symbol} <span className="text-xs text-gray-500">({coinCapOpp.currency})</span>
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {coinCapOpp.timestamp}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                        <div className="flex items-center gap-2">
+                          <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              Lowest on {coinCapOpp.lowest.exchange}
+                            </div>
+                            <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                              {coinCapOpp.lowest.price}
+                            </div>
+                            {coinCapOpp.lowest.path && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {coinCapOpp.lowest.path}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              Highest on {coinCapOpp.highest.exchange}
+                            </div>
+                            <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                              {coinCapOpp.highest.price}
+                            </div>
+                            {coinCapOpp.highest.path && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {coinCapOpp.highest.path}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Additional CoinCap info */}
+                      <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
+                        {coinCapOpp.via_currency && (
+                          <div>Via: <span className="font-medium">{coinCapOpp.via_currency}</span></div>
+                        )}
+                        {coinCapOpp.confidence_score > 0 && (
+                          <div>Confidence: <span className="font-medium">{(coinCapOpp.confidence_score * 100).toFixed(0)}%</span></div>
+                        )}
+                        <div>Type: <span className="font-medium">{coinCapOpp.type}</span></div>
+                      </div>
+                    </div>
+
+                    <div className="text-right ml-6">
+                      <div className={`text-2xl font-bold mb-1 ${coinCapOpp.percentage_difference >= 1
+                          ? 'text-green-600 dark:text-green-400'
+                          : coinCapOpp.percentage_difference >= 0.5
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}>
+                        {coinCapOpp.percentage_difference.toFixed(2)}%
+                      </div>
+                      <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                        {coinCapOpp.price_difference}
+                      </div>
+                      <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${coinCapOpp.percentage_difference >= 1
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : coinCapOpp.percentage_difference >= 0.5
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                        }`}>
+                        {coinCapOpp.percentage_difference >= 1 ? 'High Profit' : coinCapOpp.percentage_difference >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
+        </div>
+      )}
 
       {/* Show More/Less Button */}
       {currentTotalCount > maxDisplay && (
