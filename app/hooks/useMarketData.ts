@@ -3,9 +3,12 @@
 import { useMemo } from 'react';
 import { ExchangePrices, MarketData, Quote, CoinCapQuote } from '../types/streaming';
 
-// Type guard to check if data is CoinCapQuote
 function isCoinCapQuote(data: Quote | CoinCapQuote): data is CoinCapQuote {
-  return 'price_usd' in data && 'volume_24h_usd' in data;
+  return 'price_usd' in data;
+}
+
+function isStandardQuote(data: Quote | CoinCapQuote): data is Quote {
+  return 'bid' in data && 'ask' in data && 'last' in data;
 }
 
 export type UseMarketDataReturn = {
@@ -14,6 +17,7 @@ export type UseMarketDataReturn = {
 };
 
 export type CoinCapMarketData = {
+  segment: string;
   exchange: string;
   pair: string;
   symbol: string;
@@ -30,32 +34,33 @@ export function useMarketData(exchangePrices: ExchangePrices): UseMarketDataRetu
   return useMemo(() => {
     const marketData: MarketData[] = [];
     const pairMap = new Map<string, MarketData>();
-    
-    // Separate list for CoinCap format data (kept as-is for separate rendering)
     const coinCapFormatData: CoinCapMarketData[] = [];
 
-    // Process all exchange prices
-    Object.entries(exchangePrices).forEach(([exchange, pairs]) => {
-      Object.entries(pairs).forEach(([pair, quoteData]) => {
-        // Check if this is CoinCap format
-        if (isCoinCapQuote(quoteData)) {
-          // Keep CoinCap format data separate without transformation
-          coinCapFormatData.push({
-            exchange,
-            pair,
-            symbol: quoteData.symbol,
-            name: quoteData.name,
-            price: quoteData.price_usd,
-            volume: quoteData.volume_24h_usd,
-            change24h: quoteData.change_24h,
-            marketCap: quoteData.market_cap_usd,
-            rank: quoteData.rank,
-            timestamp: quoteData.timestamp
-          });
-        } else {
-          // Process normal Quote format only
-          processQuote(exchange, pair, quoteData, pairMap);
-        }
+    // New structure: all_exchange_prices -> segment -> exchange -> pair/symbol
+    Object.entries(exchangePrices).forEach(([segment, exchanges]) => {
+      Object.entries(exchanges).forEach(([exchange, pairs]) => {
+        Object.entries(pairs).forEach(([pairOrSymbol, quoteData]) => {
+          if (segment === 'public' && isStandardQuote(quoteData)) {
+            processQuote(exchange, pairOrSymbol, quoteData, pairMap);
+            return;
+          }
+
+          if (isCoinCapQuote(quoteData)) {
+            coinCapFormatData.push({
+              segment,
+              exchange,
+              pair: pairOrSymbol,
+              symbol: quoteData.symbol ?? pairOrSymbol,
+              name: quoteData.name ?? pairOrSymbol,
+              price: quoteData.price_usd,
+              volume: quoteData.volume_24h_usd,
+              change24h: quoteData.change_24h ?? 0,
+              marketCap: quoteData.market_cap_usd ?? quoteData.global_price_usd ?? 0,
+              rank: quoteData.rank ?? 0,
+              timestamp: quoteData.timestamp
+            });
+          }
+        });
       });
     });
 
@@ -67,16 +72,6 @@ export function useMarketData(exchangePrices: ExchangePrices): UseMarketDataRetu
       }
     });
 
-    // Log CoinCap format occurrences for debugging
-    if (coinCapFormatData.length > 0) {
-      console.warn(`⚠️ Found ${coinCapFormatData.length} CoinCap format entries (kept separate):`, {
-        exchanges: [...new Set(coinCapFormatData.map(d => d.exchange))],
-        count: coinCapFormatData.length,
-        pairs: coinCapFormatData.length
-      });
-    }
-
-    // Sort by pair name
     return {
       marketData: marketData.sort((a, b) => a.pair.localeCompare(b.pair)),
       coinCapFormatData: coinCapFormatData.sort((a, b) => a.pair.localeCompare(b.pair))

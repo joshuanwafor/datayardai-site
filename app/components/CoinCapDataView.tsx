@@ -8,23 +8,29 @@ type CoinCapDataViewProps = {
   data: CoinCapMarketData[];
 };
 
-type SortField = 'exchange' | 'symbol' | 'name' | 'price' | 'volume' | 'change24h' | 'marketCap';
+type SortField = 'segment' | 'exchange' | 'symbol' | 'name' | 'price' | 'volume' | 'change24h' | 'marketCap';
 type SortDirection = 'asc' | 'desc';
 
 export function CoinCapDataView({ data }: CoinCapDataViewProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
+  const [segmentFilter, setSegmentFilter] = useState('all');
   const [sortField, setSortField] = useState<SortField>('volume');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   // Filter and sort data
   const filteredData = useMemo(() => {
-    const filtered = data.filter(item => 
+    const filtered = data.filter(item => {
+      const matchesSegment = segmentFilter === 'all' || item.segment === segmentFilter;
+      if (!matchesSegment) return false;
+      return (
       item.exchange.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.segment.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+      );
+    });
 
     // Sort data
     filtered.sort((a, b) => {
@@ -44,7 +50,7 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
     });
 
     return filtered;
-  }, [data, searchTerm, sortField, sortDirection]);
+  }, [data, searchTerm, segmentFilter, sortField, sortDirection]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -55,7 +61,7 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, itemsPerPage]);
+  }, [searchTerm, segmentFilter, itemsPerPage]);
 
   if (data.length === 0) {
     return (
@@ -75,7 +81,8 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
     );
   }
 
-  const uniqueExchanges = new Set(data.map(d => d.exchange)).size;
+  const uniqueExchanges = new Set(data.map((d) => d.exchange)).size;
+  const uniqueSegments = Array.from(new Set(data.map((d) => d.segment))).sort();
   const gainersCount = data.filter(d => d.change24h > 0).length;
   const losersCount = data.filter(d => d.change24h < 0).length;
 
@@ -107,7 +114,9 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
               <span className="text-yellow-500">⚠️</span>
               CoinCap Format Data
             </h2>
-        
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Segment-aware market feed (`coincap`, `coingecko`, and future feeds)
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm font-semibold border border-yellow-200 dark:border-yellow-800">
@@ -135,6 +144,23 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              Segment:
+            </label>
+            <select
+              value={segmentFilter}
+              onChange={(e) => setSegmentFilter(e.target.value)}
+              className="px-3 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            >
+              <option value="all">All</option>
+              {uniqueSegments.map((segment) => (
+                <option key={segment} value={segment}>
+                  {segment}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
               Per page:
             </label>
             <select
@@ -156,6 +182,12 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
         <table className="w-full text-sm">
           <thead className="bg-gray-100 dark:bg-gray-900">
             <tr>
+              <th
+                onClick={() => handleSort('segment')}
+                className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+              >
+                Segment <SortIcon field="segment" />
+              </th>
               <th 
                 onClick={() => handleSort('exchange')}
                 className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
@@ -202,7 +234,10 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
             {currentData.map((item, idx) => (
-              <tr key={`${item.exchange}-${item.pair}-${idx}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <tr key={`${item.segment}-${item.exchange}-${item.pair}-${idx}`} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <td className="px-4 py-4 text-gray-700 dark:text-gray-300 font-medium capitalize">
+                  {item.segment}
+                </td>
                 <td className="px-4 py-4 text-gray-900 dark:text-white font-semibold capitalize">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
@@ -325,7 +360,7 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
 
       {/* Stats Summary */}
       <div className="px-6 py-6 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-t border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="text-3xl font-bold text-gray-900 dark:text-white">
               {data.length}
@@ -340,6 +375,14 @@ export function CoinCapDataView({ data }: CoinCapDataViewProps) {
             </div>
             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
               Exchanges
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+            <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+              {uniqueSegments.length}
+            </div>
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wide">
+              Segments
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
