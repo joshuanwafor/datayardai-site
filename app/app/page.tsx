@@ -36,7 +36,7 @@ export default function AppPage() {
     router.push('/');
   };
 
-  const { frame, isConnected, error, reconnectAttempts, reconnect, startStream, testConnection } = useMarketStream();
+  const { frame, isConnected, isStreaming, error, reconnectAttempts, reconnect, startStream, stopStream } = useMarketStream();
   const { marketData, coinCapFormatData } = useMarketData(frame?.data.all_exchange_prices || {});
   // Show loading state while checking authentication
   if (isLoading) {
@@ -197,10 +197,12 @@ export default function AppPage() {
         <center className='my-4 md:w-1/2 mx-auto'>
           <ConnectionStatus
             isConnected={isConnected}
+            isStreaming={isStreaming}
             error={error}
             reconnectAttempts={reconnectAttempts}
             onReconnect={reconnect}
             onStartStream={startStream}
+            onStopStream={stopStream}
 
           /></center>
 

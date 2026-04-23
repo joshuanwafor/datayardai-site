@@ -5,10 +5,12 @@ import { getAnalyzerStatus, pauseAnalyzer, resumeAnalyzer, type AnalyzerStatusRe
 
 interface ConnectionStatusProps {
   isConnected: boolean;
+  isStreaming: boolean;
   error: string | null;
   reconnectAttempts: number;
   onReconnect: () => void;
   onStartStream?: () => void;
+  onStopStream?: () => void;
 }
 
 interface AnalyzerModalProps {
@@ -132,10 +134,12 @@ function AnalyzerModal({
 
 export function ConnectionStatus({
   isConnected,
+  isStreaming,
   error,
   reconnectAttempts,
   onReconnect,
-  onStartStream
+  onStartStream,
+  onStopStream
 }: ConnectionStatusProps) {
   const [analyzerData, setAnalyzerData] = useState<AnalyzerStatusResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -230,12 +234,20 @@ export function ConnectionStatus({
               </button>
             </>
           )}
-          {isConnected && onStartStream && (
+          {isConnected && !isStreaming && onStartStream && (
             <button
               onClick={onStartStream}
               className="px-3 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
             >
               Start Stream
+            </button>
+          )}
+          {isConnected && isStreaming && onStopStream && (
+            <button
+              onClick={onStopStream}
+              className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            >
+              Stop Stream
             </button>
           )}
 

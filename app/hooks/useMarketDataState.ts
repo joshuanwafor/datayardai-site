@@ -7,6 +7,7 @@ import { StreamFrame, TradingSessionStatus, TradingResponse, TradingConnectionSt
 class MarketDataState {
   private socket: Socket | null = null;
   public isConnected: boolean = false;
+  public isStreaming: boolean = false;
   public error: string | null = null;
   public reconnectAttempts: number = 0;
   public frame: StreamFrame | null = null;
@@ -20,6 +21,7 @@ class MarketDataState {
   constructor() {
     makeObservable(this, {
       isConnected: observable,
+      isStreaming: observable,
       error: observable,
       reconnectAttempts: observable,
       frame: observable,
@@ -59,8 +61,10 @@ class MarketDataState {
       runInAction(() => {
         this.socketStatus = "connected";
         this.isConnected = true;
+        this.isStreaming = false;
         this.error = null;
         this.reconnectAttempts = 0;
+        this.frame = null;
       });
       console.log('Socket.IO connected - state updated:', {
         isConnected: this.isConnected,
@@ -68,16 +72,6 @@ class MarketDataState {
         error: this.error
       });
       
-      // Start the trading stream
-      console.log('Emitting trading/stream event');
-      const payload = {
-        task: "start_session",
-        data: {
-          user_id: "6c2c8c80-06fb-4b1e-bf6a-77c7d79962cb",
-          opportunities_limit: 10
-        }
-      };
-      this.socket?.emit('trading/stream', payload);
     });
 
     this.socket.on('connect_error', (error: unknown) => {
@@ -99,6 +93,7 @@ class MarketDataState {
       runInAction(() => {
         this.socketStatus = "disconnected";
         this.isConnected = false;
+        this.isStreaming = false;
       });
       console.log('Socket.IO disconnected:', reason);
       
@@ -144,6 +139,7 @@ class MarketDataState {
       console.log('Received trading_update:', data);
       runInAction(() => {
         this.frame = data;
+        this.isStreaming = true;
         // Also ensure connection status is updated when we receive data
         if (!this.isConnected) {
           this.isConnected = true;
@@ -215,6 +211,7 @@ class MarketDataState {
       this.socket = null;
       runInAction(() => {
         this.isConnected = false;
+        this.isStreaming = false;
         this.socketStatus = "disconnected";
       });
       console.log('Socket disconnected');
@@ -236,7 +233,23 @@ class MarketDataState {
         }
       };
       this.socket.emit('trading/stream', payload);
+      runInAction(() => {
+        this.isStreaming = true;
+        this.error = null;
+      });
     }
+  }
+
+  stopStream(): void {
+    if (this.socket?.connected) {
+      console.log('Stopping trading stream');
+      this.socket.emit('trading/stream', { task: "stop_session" });
+    }
+
+    runInAction(() => {
+      this.isStreaming = false;
+      this.frame = null;
+    });
   }
   emit(event: string, data?: unknown): void {
     if (this.socket) {
