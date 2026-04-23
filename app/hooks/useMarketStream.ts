@@ -8,6 +8,7 @@ import { sampleStreamFrame } from '../mocks/sampleStreamFrame';
 export function useMarketStream() {
   const isMockMode = process.env.NEXT_PUBLIC_USE_MOCK_STREAM === 'true';
   const [mockFrame] = useState(sampleStreamFrame);
+  const [mockIsStreaming, setMockIsStreaming] = useState(false);
 
   // Force re-renders when MobX state changes
   const [, forceUpdate] = useState({});
@@ -27,6 +28,10 @@ export function useMarketStream() {
 
   const startStream = useCallback(() => {
     marketDataState.startStream();
+  }, []);
+
+  const stopStream = useCallback(() => {
+    marketDataState.stopStream();
   }, []);
 
   const testConnection = useCallback(() => {
@@ -60,6 +65,7 @@ export function useMarketStream() {
         isConnected: marketDataState.isConnected,
         error: marketDataState.error,
         reconnectAttempts: marketDataState.reconnectAttempts,
+        isStreaming: marketDataState.isStreaming,
         frame: marketDataState.frame,
         socketStatus: marketDataState.socketStatus,
         tradingSessionStatus: marketDataState.tradingSessionStatus,
@@ -77,8 +83,9 @@ export function useMarketStream() {
 
   if (isMockMode) {
     return {
-      frame: mockFrame,
+      frame: mockIsStreaming ? mockFrame : null,
       isConnected: true,
+      isStreaming: mockIsStreaming,
       error: null,
       reconnectAttempts: 0,
       tradingSessionStatus: { status: 'mock', message: 'Mock stream mode enabled' },
@@ -86,14 +93,16 @@ export function useMarketStream() {
       tradingConnectionStatus: { status: 'connected', message: 'Mock mode' },
       reconnect: () => undefined,
       disconnect: () => undefined,
-      startStream: () => undefined,
+      startStream: () => setMockIsStreaming(true),
+      stopStream: () => setMockIsStreaming(false),
       testConnection: () => undefined
     };
   }
 
   return {
-    frame: marketDataState.frame,
+    frame: marketDataState.isStreaming ? marketDataState.frame : null,
     isConnected: marketDataState.isConnected,
+    isStreaming: marketDataState.isStreaming,
     error: marketDataState.error,
     reconnectAttempts: marketDataState.reconnectAttempts,
     tradingSessionStatus: marketDataState.tradingSessionStatus,
@@ -102,6 +111,7 @@ export function useMarketStream() {
     reconnect,
     disconnect,
     startStream,
+    stopStream,
     testConnection
   };
 }
