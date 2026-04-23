@@ -3,8 +3,12 @@
 import { useEffect, useCallback, useState } from 'react';
 import { reaction } from 'mobx';
 import { marketDataState } from './useMarketDataState';
+import { sampleStreamFrame } from '../mocks/sampleStreamFrame';
 
 export function useMarketStream() {
+  const isMockMode = process.env.NEXT_PUBLIC_USE_MOCK_STREAM === 'true';
+  const [mockFrame] = useState(sampleStreamFrame);
+
   // Force re-renders when MobX state changes
   const [, forceUpdate] = useState({});
   const forceRerender = useCallback(() => forceUpdate({}), []);
@@ -30,6 +34,10 @@ export function useMarketStream() {
   }, []);
 
   useEffect(() => {
+    if (isMockMode) {
+      return;
+    }
+
     // Only connect on client side
     if (typeof window !== 'undefined') {
       connect();
@@ -39,10 +47,14 @@ export function useMarketStream() {
       // Disconnect on unmount
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [connect, disconnect, isMockMode]);
 
   // Subscribe to MobX state changes
   useEffect(() => {
+    if (isMockMode) {
+      return;
+    }
+
     const disposer = reaction(
       () => ({
         isConnected: marketDataState.isConnected,
@@ -61,7 +73,23 @@ export function useMarketStream() {
     );
 
     return disposer;
-  }, [forceRerender]);
+  }, [forceRerender, isMockMode]);
+
+  if (isMockMode) {
+    return {
+      frame: mockFrame,
+      isConnected: true,
+      error: null,
+      reconnectAttempts: 0,
+      tradingSessionStatus: { status: 'mock', message: 'Mock stream mode enabled' },
+      tradingResponse: { status: 'mock', message: 'Using local mock stream payload' },
+      tradingConnectionStatus: { status: 'connected', message: 'Mock mode' },
+      reconnect: () => undefined,
+      disconnect: () => undefined,
+      startStream: () => undefined,
+      testConnection: () => undefined
+    };
+  }
 
   return {
     frame: marketDataState.frame,

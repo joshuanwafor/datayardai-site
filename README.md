@@ -44,9 +44,14 @@ Create a `.env.local` file in the root directory:
 # API Configuration
 NEXT_PUBLIC_STREAM_URL=https://api.datayardai.com
 
+# Local mock stream mode (optional)
+NEXT_PUBLIC_USE_MOCK_STREAM=false
+
 # Authentication (optional - defaults to 'datayard2024')
 NEXT_PUBLIC_APP_PASSWORD=your_custom_password_here
 ```
+
+When `NEXT_PUBLIC_USE_MOCK_STREAM=true`, the dashboard uses a local fixture payload that matches the segmented stream structure (`public`, `coincap`, `coingecko`) from `app/mocks/sampleStreamFrame.ts`.
 
 ## Learn More
 

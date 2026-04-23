@@ -46,7 +46,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
   // Filter and sort opportunities
   const filteredAndSortedOpportunities = useMemo(() => {
     const filtered = opportunities.filter(opp => 
-      opp.pair.toLowerCase().includes(filterPair.toLowerCase())
+      (opp.pair ?? opp.symbol ?? '').toLowerCase().includes(filterPair.toLowerCase())
     );
 
     filtered.sort((a, b) => {
@@ -67,8 +67,8 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
           bValue = new Date(b.timestamp).getTime();
           break;
         case 'pair':
-          aValue = a.pair;
-          bValue = b.pair;
+          aValue = a.pair ?? a.symbol ?? '';
+          bValue = b.pair ?? b.symbol ?? '';
           break;
         default:
           aValue = a.profit_percentage;
@@ -96,7 +96,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     const totalProfit = opportunities.reduce((sum, opp) => sum + opp.profit, 0);
     const avgProfit = opportunities.reduce((sum, opp) => sum + opp.profit_percentage, 0) / opportunities.length;
     const maxProfit = Math.max(...opportunities.map(opp => opp.profit_percentage));
-    const uniquePairs = new Set(opportunities.map(opp => opp.pair)).size;
+    const uniquePairs = new Set(opportunities.map(opp => opp.pair ?? opp.symbol ?? 'UNKNOWN')).size;
 
     return {
       totalProfit,
@@ -231,16 +231,16 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
       {/* Opportunities List */}
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {filteredAndSortedOpportunities.map((opp, index) => (
-          <div key={`${opp.pair}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <div key={`${opp.pair ?? opp.symbol ?? 'UNKNOWN'}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                    {opp.pair.substring(0, 2)}
+                    {(opp.pair ?? opp.symbol ?? '??').substring(0, 2)}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {opp.pair}
+                      {opp.pair ?? opp.symbol ?? 'Unknown'}
                     </h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       {formatTime(opp.timestamp)}

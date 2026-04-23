@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ArbitrageOpportunity, Opportunity, CoinCapOpportunity } from '../types/streaming';
+import { ArbitrageOpportunity, Opportunity } from '../types/streaming';
 import { TrendingUp, DollarSign, Activity, Target } from 'lucide-react';
 
 interface ArbitrageHeatmapProps {
@@ -10,11 +10,7 @@ interface ArbitrageHeatmapProps {
 
 // Type guard functions
 function isPublicOpportunity(opp: ArbitrageOpportunity): opp is Opportunity {
-  return 'pair' in opp && 'buy_exchange' in opp && 'sell_exchange' in opp;
-}
-
-function isCoinCapOpportunity(opp: ArbitrageOpportunity): opp is CoinCapOpportunity {
-  return 'symbol' in opp && 'lowest' in opp && 'highest' in opp;
+  return opp.seg === 'public' && typeof opp.pair === 'string';
 }
 
 
@@ -28,10 +24,14 @@ export function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
     const publicOpps = opportunities.filter(isPublicOpportunity);
     
     const opportunitiesByPair = publicOpps.reduce((acc, opp) => {
-      if (!acc[opp.pair]) {
-        acc[opp.pair] = [];
+      const pair = opp.pair;
+      if (!pair) {
+        return acc;
       }
-      acc[opp.pair].push(opp);
+      if (!acc[pair]) {
+        acc[pair] = [];
+      }
+      acc[pair].push(opp);
       return acc;
     }, {} as Record<string, Opportunity[]>);
 
