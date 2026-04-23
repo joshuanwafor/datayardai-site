@@ -14,21 +14,21 @@ function getOpportunityLabel(opp: ArbitrageOpportunity): string {
 }
 
 export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: ArbitrageOpportunitiesProps) {
+  const segmentOptions = ['coingecko', 'public', 'coincap'] as const;
+  const typeOptions = ['all', 'direct', 'cross_rate', 'triangular'] as const;
+
   const [sortBy, setSortBy] = useState<'profit' | 'percentage' | 'time' | 'label'>('percentage');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showAll, setShowAll] = useState(false);
-  const [activeSegment, setActiveSegment] = useState<string>('all');
-
-  const segments = useMemo(() => {
-    const unique = Array.from(new Set(opportunities.map((opp) => opp.seg))).filter(Boolean);
-    return ['all', ...unique.sort()];
-  }, [opportunities]);
+  const [activeSegment, setActiveSegment] = useState<(typeof segmentOptions)[number]>('public');
+  const [activeType, setActiveType] = useState<(typeof typeOptions)[number]>('all');
 
   const filteredAndSortedOpportunities = useMemo(() => {
     const search = searchTerm.toLowerCase();
     const filtered = opportunities.filter((opp) => {
-      if (activeSegment !== 'all' && opp.seg !== activeSegment) return false;
+      if (opp.seg !== activeSegment) return false;
+      if (activeType !== 'all' && opp.type !== activeType) return false;
       if (!search) return true;
       const label = getOpportunityLabel(opp).toLowerCase();
       return (
@@ -73,9 +73,13 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     });
 
     return showAll ? filtered : filtered.slice(0, maxDisplay);
-  }, [opportunities, activeSegment, searchTerm, sortBy, sortOrder, showAll, maxDisplay]);
+  }, [opportunities, activeSegment, activeType, searchTerm, sortBy, sortOrder, showAll, maxDisplay]);
 
-  const currentTotalCount = opportunities.filter((opp) => activeSegment === 'all' || opp.seg === activeSegment).length;
+  const currentTotalCount = opportunities.filter((opp) => {
+    if (opp.seg !== activeSegment) return false;
+    if (activeType !== 'all' && opp.type !== activeType) return false;
+    return true;
+  }).length;
 
   if (opportunities.length === 0) {
     return (
@@ -112,27 +116,28 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
               Arbitrage Opportunities
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {opportunities.length} opportunities found across {segments.length - 1} segments
+              {currentTotalCount} opportunities in {activeSegment}
             </p>
           </div>
         </div>
 
-        {/* Segment tabs */}
+        {/* Segment tabs (Coingecko/Public/Coincap) */}
         <div className="flex gap-2 mb-4">
-          {segments.map((segment) => {
-            const count = segment === 'all'
-              ? opportunities.length
-              : opportunities.filter((opp) => opp.seg === segment).length;
+          {segmentOptions.map((segment) => {
+            const count = opportunities.filter((opp) => opp.seg === segment).length;
             return (
               <button
                 key={segment}
-                onClick={() => setActiveSegment(segment)}
+                onClick={() => {
+                  setActiveSegment(segment);
+                  setActiveType('all');
+                }}
                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeSegment === segment
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500'
                   }`}
               >
-                {segment === 'all' ? 'All' : segment} ({count})
+                {segment.charAt(0).toUpperCase() + segment.slice(1)} ({count})
               </button>
             );
           })}
@@ -140,11 +145,25 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
         {/* Controls */}
         <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-gray-400" />
+            <select
+              value={activeType}
+              onChange={(e) => setActiveType(e.target.value as (typeof typeOptions)[number])}
+              className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2"
+            >
+              <option value="all">All Types</option>
+              <option value="direct">Direct</option>
+              <option value="cross_rate">Cross Rate</option>
+              <option value="triangular">Triangular</option>
+            </select>
+          </div>
+
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Filter by segment, symbol/pair, exchange, or type..."
+              placeholder="Filter by symbol/pair or exchange..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
