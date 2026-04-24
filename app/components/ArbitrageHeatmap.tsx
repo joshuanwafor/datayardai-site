@@ -36,11 +36,11 @@ export function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
     }, {} as Record<string, Opportunity[]>);
 
     return Object.entries(opportunitiesByPair).map(([pair, opps]) => {
-      const maxProfit = Math.max(...opps.map(o => o.profit_percentage));
-      const avgProfit = opps.reduce((sum, o) => sum + o.profit_percentage, 0) / opps.length;
-      const totalProfit = opps.reduce((sum, o) => sum + o.profit, 0);
+      const maxProfit = Math.max(...opps.map((o) => o.profit_percentage ?? 0));
+      const avgProfit = opps.reduce((sum, o) => sum + (o.profit_percentage ?? 0), 0) / opps.length;
+      const totalProfit = opps.reduce((sum, o) => sum + (o.profit ?? 0), 0);
       const bestOpportunity = opps.reduce((best, current) => 
-        current.profit_percentage > best.profit_percentage ? current : best
+        (current.profit_percentage ?? 0) > (best.profit_percentage ?? 0) ? current : best
       );
 
       return {
@@ -76,9 +76,9 @@ export function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
     if (publicOpps.length === 0) return null;
     
     const totalOpportunities = publicOpps.length;
-    const avgProfit = publicOpps.reduce((sum, o) => sum + o.profit_percentage, 0) / totalOpportunities;
-    const maxProfit = Math.max(...publicOpps.map(o => o.profit_percentage));
-    const totalProfit = publicOpps.reduce((sum, o) => sum + o.profit, 0);
+    const avgProfit = publicOpps.reduce((sum, o) => sum + (o.profit_percentage ?? 0), 0) / totalOpportunities;
+    const maxProfit = Math.max(...publicOpps.map((o) => o.profit_percentage ?? 0));
+    const totalProfit = publicOpps.reduce((sum, o) => sum + (o.profit ?? 0), 0);
     const uniquePairs = new Set(publicOpps.map(o => o.pair)).size;
 
     return {
@@ -256,10 +256,10 @@ export function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                    {pair.bestOpportunity.profit_percentage.toFixed(2)}%
+                    {(pair.bestOpportunity.profit_percentage ?? 0).toFixed(2)}%
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
-                    ${pair.bestOpportunity.profit.toFixed(2)} profit
+                    ${(pair.bestOpportunity.profit ?? 0).toFixed(2)} profit
                   </div>
                 </div>
               </div>

@@ -228,8 +228,8 @@ class MarketDataState {
       const payload = {
         task: "start_session",
         data: {
-          user_id: "6c2c8c80-06fb-4b1e-bf6a-77c7d79962cb",
-          opportunities_limit: 50
+          user_id: "a68fc011-f34b-4740-b5f7-ad8c7d0af7ec",
+          opportunities_limit: 100
         }
       };
       this.socket.emit('trading/stream', payload);

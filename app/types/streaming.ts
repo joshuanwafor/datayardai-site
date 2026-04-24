@@ -24,20 +24,53 @@ export type CoinCapQuote = {
 
 export type OpportunityType = "direct" | "triangular" | "cross_rate";
 
+export type OpportunityLeg = {
+  price: number;
+  exchange: string;
+  volume_24h_usd?: number;
+  path?: string;
+  rate?: number;
+  pair?: string;
+  action?: string;
+  description?: string;
+};
+
 // Unified opportunity format for all segments.
 export type Opportunity = {
   type: OpportunityType | string;
   seg: string;
   pair?: string;
   symbol?: string;
-  buy_exchange: string;
-  sell_exchange: string;
-  buy_price: number;
-  sell_price: number;
-  profit: number;
-  profit_percentage: number;
+  buy_exchange?: string;
+  sell_exchange?: string;
+  buy_price?: number;
+  sell_price?: number;
+  profit?: number;
+  profit_percentage?: number;
+  price_difference?: number;
+  percentage_difference?: number;
+  profit_pct?: number;
+  volume_24h?: number;
+  volume_24h_usd?: number;
+  currency?: string;
+  via_currency?: string | null;
+  confidence_score?: number;
+  lowest?: OpportunityLeg;
+  highest?: OpportunityLeg;
+  strategy?: string;
+  path?: string;
+  base_currency?: string;
+  leg1?: OpportunityLeg;
+  leg2?: OpportunityLeg;
+  direct_alternative?: OpportunityLeg;
+  triangular_rate?: number;
+  direct_rate?: number;
+  profit_per_unit?: number;
+  implied_rate?: number;
+  actual_rate?: number;
   timestamp: string; // ISO
   db_created_at?: string; // ISO
+  db_updated_at?: string; // ISO
 };
 
 export type ArbitrageOpportunity = Opportunity;

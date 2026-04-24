@@ -10,7 +10,22 @@ interface ArbitrageOpportunitiesProps {
 }
 
 function getOpportunityLabel(opp: ArbitrageOpportunity): string {
-  return opp.pair || opp.symbol || 'Unknown';
+  return opp.pair || opp.symbol || opp.base_currency || opp.path || 'Unknown';
+}
+
+function getNormalizedType(type: string): 'direct' | 'cross_rate' | 'triangular' {
+  const normalized = type.toLowerCase();
+  if (normalized.includes('cross_rate')) return 'cross_rate';
+  if (normalized.includes('triangular')) return 'triangular';
+  return 'direct';
+}
+
+function getProfitPercentage(opp: ArbitrageOpportunity): number {
+  return opp.profit_percentage ?? opp.profit_pct ?? opp.percentage_difference ?? 0;
+}
+
+function getProfitValue(opp: ArbitrageOpportunity): number {
+  return opp.profit ?? opp.price_difference ?? 0;
 }
 
 export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: ArbitrageOpportunitiesProps) {
@@ -28,13 +43,13 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
     const search = searchTerm.toLowerCase();
     const filtered = opportunities.filter((opp) => {
       if (opp.seg !== activeSegment) return false;
-      if (activeType !== 'all' && opp.type !== activeType) return false;
+      if (activeType !== 'all' && getNormalizedType(opp.type) !== activeType) return false;
       if (!search) return true;
       const label = getOpportunityLabel(opp).toLowerCase();
       return (
         label.includes(search) ||
-        opp.buy_exchange.toLowerCase().includes(search) ||
-        opp.sell_exchange.toLowerCase().includes(search) ||
+        (opp.buy_exchange ?? opp.lowest?.exchange ?? '').toLowerCase().includes(search) ||
+        (opp.sell_exchange ?? opp.highest?.exchange ?? '').toLowerCase().includes(search) ||
         opp.type.toLowerCase().includes(search) ||
         opp.seg.toLowerCase().includes(search)
       );
@@ -46,8 +61,8 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
       switch (sortBy) {
         case 'profit':
-          aValue = a.profit;
-          bValue = b.profit;
+          aValue = getProfitValue(a);
+          bValue = getProfitValue(b);
           break;
         case 'time':
           aValue = new Date(a.timestamp).getTime();
@@ -59,8 +74,8 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
           break;
         case 'percentage':
         default:
-          aValue = a.profit_percentage;
-          bValue = b.profit_percentage;
+          aValue = getProfitPercentage(a);
+          bValue = getProfitPercentage(b);
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -77,7 +92,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
   const currentTotalCount = opportunities.filter((opp) => {
     if (opp.seg !== activeSegment) return false;
-    if (activeType !== 'all' && opp.type !== activeType) return false;
+    if (activeType !== 'all' && getNormalizedType(opp.type) !== activeType) return false;
     return true;
   }).length;
 
@@ -197,7 +212,26 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
         {filteredAndSortedOpportunities.map((opp, index) => {
           const label = getOpportunityLabel(opp);
-          const isHighProfit = opp.profit_percentage > 0.5;
+          const profitPercentage = getProfitPercentage(opp);
+          const profitValue = getProfitValue(opp);
+          const buyExchange = opp.buy_exchange ?? opp.lowest?.exchange ?? 'N/A';
+          const sellExchange = opp.sell_exchange ?? opp.highest?.exchange ?? 'N/A';
+          const buyPrice = opp.buy_price ?? opp.lowest?.price ?? 0;
+          const sellPrice = opp.sell_price ?? opp.highest?.price ?? 0;
+          const publicCrossBuyExchange = opp.leg1?.exchange ?? buyExchange;
+          const publicCrossSellExchange = opp.leg2?.exchange ?? sellExchange;
+          const publicCrossBuyPrice = opp.leg1?.price ?? buyPrice;
+          const publicCrossSellPrice = opp.leg2?.price ?? sellPrice;
+          const volume24h = opp.volume_24h ?? 0;
+          const volume24hUsd =
+            opp.volume_24h_usd ??
+            opp.lowest?.volume_24h_usd ??
+            opp.highest?.volume_24h_usd ??
+            0;
+          const priceDiff = opp.price_difference ?? sellPrice - buyPrice;
+          const percentageDiff = opp.percentage_difference ?? profitPercentage;
+          const confidence = opp.confidence_score ?? 0;
+          const isHighProfit = profitPercentage > 0.5;
           return (
             <div key={`${label}-${opp.timestamp}-${index}`} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
               <div className="flex items-center justify-between">
@@ -213,6 +247,11 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {opp.seg} • {opp.type} • {new Date(opp.timestamp).toLocaleString()}
                       </p>
+                      {opp.via_currency && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Via: {opp.via_currency}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -220,25 +259,119 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                     <div className="flex items-center gap-2">
                       <ArrowDownRight className="w-4 h-4 text-green-600 dark:text-green-400" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">Buy on {opp.buy_exchange}</div>
-                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">{opp.buy_price}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">Buy on {publicCrossBuyExchange}</div>
+                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">{publicCrossBuyPrice}</div>
+                        {opp.leg1?.description && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{opp.leg1.description}</div>
+                        )}
+                        {opp.lowest?.path && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{opp.lowest.path}</div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <ArrowUpRight className="w-4 h-4 text-red-600 dark:text-red-400" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">Sell on {opp.sell_exchange}</div>
-                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">{opp.sell_price}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">Sell on {publicCrossSellExchange}</div>
+                        <div className="text-sm font-mono text-gray-600 dark:text-gray-400">{publicCrossSellPrice}</div>
+                        {opp.leg2?.description && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{opp.leg2.description}</div>
+                        )}
+                        {opp.highest?.path && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{opp.highest.path}</div>
+                        )}
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+                      <div>
+                        Currency: <span className="font-medium text-gray-900 dark:text-white">{opp.currency ?? 'N/A'}</span>
+                      </div>
+                      {opp.strategy && (
+                        <div>
+                          Strategy: <span className="font-medium text-gray-900 dark:text-white">{opp.strategy}</span>
+                        </div>
+                      )}
+                      {opp.path && (
+                        <div className="md:col-span-2">
+                          Path: <span className="font-medium text-gray-900 dark:text-white">{opp.path}</span>
+                        </div>
+                      )}
+                      {opp.base_currency && (
+                        <div>
+                          Base Currency: <span className="font-medium text-gray-900 dark:text-white">{opp.base_currency}</span>
+                        </div>
+                      )}
+                      <div>
+                        Via Currency: <span className="font-medium text-gray-900 dark:text-white">{opp.via_currency ?? 'N/A'}</span>
+                      </div>
+                      <div>
+                        Volume (24h): <span className="font-medium text-gray-900 dark:text-white">{volume24h}</span>
+                      </div>
+                      <div>
+                        Volume (24h USD): <span className="font-medium text-gray-900 dark:text-white">{volume24hUsd}</span>
+                      </div>
+                      <div>
+                        Price Difference: <span className="font-medium text-gray-900 dark:text-white">{priceDiff}</span>
+                      </div>
+                      <div>
+                        Percentage Difference: <span className="font-medium text-gray-900 dark:text-white">{percentageDiff.toFixed(4)}%</span>
+                      </div>
+                      <div>
+                        Confidence: <span className="font-medium text-gray-900 dark:text-white">{confidence}</span>
+                      </div>
+                      <div>
+                        Lowest Rate: <span className="font-medium text-gray-900 dark:text-white">{opp.lowest?.rate ?? 'N/A'}</span>
+                      </div>
+                      <div>
+                        Highest Rate: <span className="font-medium text-gray-900 dark:text-white">{opp.highest?.rate ?? 'N/A'}</span>
+                      </div>
+                      {opp.direct_alternative?.exchange && (
+                        <div className="md:col-span-2">
+                          Direct Alternative: <span className="font-medium text-gray-900 dark:text-white">{opp.direct_alternative.exchange} {opp.direct_alternative.pair ? `(${opp.direct_alternative.pair})` : ''} @ {opp.direct_alternative.price}</span>
+                        </div>
+                      )}
+                      {opp.direct_alternative?.description && (
+                        <div className="md:col-span-2">
+                          Alternative Note: <span className="font-medium text-gray-900 dark:text-white">{opp.direct_alternative.description}</span>
+                        </div>
+                      )}
+                      {opp.triangular_rate !== undefined && (
+                        <div>
+                          Triangular Rate: <span className="font-medium text-gray-900 dark:text-white">{opp.triangular_rate}</span>
+                        </div>
+                      )}
+                      {opp.direct_rate !== undefined && (
+                        <div>
+                          Direct Rate: <span className="font-medium text-gray-900 dark:text-white">{opp.direct_rate}</span>
+                        </div>
+                      )}
+                      {opp.profit_per_unit !== undefined && (
+                        <div>
+                          Profit / Unit: <span className="font-medium text-gray-900 dark:text-white">{opp.profit_per_unit}</span>
+                        </div>
+                      )}
+                      {opp.implied_rate !== undefined && (
+                        <div>
+                          Implied Rate: <span className="font-medium text-gray-900 dark:text-white">{opp.implied_rate}</span>
+                        </div>
+                      )}
+                      {opp.actual_rate !== undefined && (
+                        <div>
+                          Actual Rate: <span className="font-medium text-gray-900 dark:text-white">{opp.actual_rate}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right ml-6">
                   <div className={`text-2xl font-bold mb-1 ${isHighProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {opp.profit_percentage.toFixed(2)}%
+                    {profitPercentage.toFixed(2)}%
                   </div>
-                  <div className="text-sm font-mono text-gray-600 dark:text-gray-400">{opp.profit}</div>
+                  <div className="text-sm font-mono text-gray-600 dark:text-gray-400">{profitValue}</div>
                   <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${isHighProfit
                     ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                     : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
