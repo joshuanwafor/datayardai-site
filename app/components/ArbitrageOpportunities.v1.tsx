@@ -55,12 +55,12 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
 
       switch (sortBy) {
         case 'profit':
-          aValue = a.profit;
-          bValue = b.profit;
+          aValue = a.profit ?? 0;
+          bValue = b.profit ?? 0;
           break;
         case 'percentage':
-          aValue = a.profit_percentage;
-          bValue = b.profit_percentage;
+          aValue = a.profit_percentage ?? 0;
+          bValue = b.profit_percentage ?? 0;
           break;
         case 'time':
           aValue = new Date(a.timestamp).getTime();
@@ -71,8 +71,8 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
           bValue = b.pair ?? b.symbol ?? '';
           break;
         default:
-          aValue = a.profit_percentage;
-          bValue = b.profit_percentage;
+          aValue = a.profit_percentage ?? 0;
+          bValue = b.profit_percentage ?? 0;
       }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -93,9 +93,9 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
   const stats = useMemo(() => {
     if (opportunities.length === 0) return null;
     
-    const totalProfit = opportunities.reduce((sum, opp) => sum + opp.profit, 0);
-    const avgProfit = opportunities.reduce((sum, opp) => sum + opp.profit_percentage, 0) / opportunities.length;
-    const maxProfit = Math.max(...opportunities.map(opp => opp.profit_percentage));
+    const totalProfit = opportunities.reduce((sum, opp) => sum + (opp.profit ?? 0), 0);
+    const avgProfit = opportunities.reduce((sum, opp) => sum + (opp.profit_percentage ?? 0), 0) / opportunities.length;
+    const maxProfit = Math.max(...opportunities.map((opp) => opp.profit_percentage ?? 0));
     const uniquePairs = new Set(opportunities.map(opp => opp.pair ?? opp.symbol ?? 'UNKNOWN')).size;
 
     return {
@@ -256,7 +256,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                         Buy on {opp.buy_exchange}
                       </div>
                       <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                        ${formatPrice(opp.buy_price)}
+                        ${formatPrice(opp.buy_price ?? 0)}
                       </div>
                     </div>
                   </div>
@@ -268,7 +268,7 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
                         Sell on {opp.sell_exchange}
                       </div>
                       <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                        ${formatPrice(opp.sell_price)}
+                        ${formatPrice(opp.sell_price ?? 0)}
                       </div>
                     </div>
                   </div>
@@ -277,25 +277,25 @@ export function ArbitrageOpportunities({ opportunities, maxDisplay = 20 }: Arbit
               
               <div className="text-right ml-6">
                 <div className={`text-2xl font-bold mb-1 ${
-                  opp.profit_percentage >= 1 
+                  (opp.profit_percentage ?? 0) >= 1 
                     ? 'text-green-600 dark:text-green-400'
-                    : opp.profit_percentage >= 0.5
+                    : (opp.profit_percentage ?? 0) >= 0.5
                     ? 'text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400'
                 }`}>
-                  {opp.profit_percentage.toFixed(2)}%
+                  {(opp.profit_percentage ?? 0).toFixed(2)}%
                 </div>
                 <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                  ${formatProfit(opp.profit)}
+                  ${formatProfit(opp.profit ?? 0)}
                 </div>
                 <div className={`inline-flex px-2 py-1 text-xs font-medium rounded-full mt-2 ${
-                  opp.profit_percentage >= 1 
+                  (opp.profit_percentage ?? 0) >= 1 
                     ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                    : opp.profit_percentage >= 0.5
+                    : (opp.profit_percentage ?? 0) >= 0.5
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                     : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                 }`}>
-                  {opp.profit_percentage >= 1 ? 'High Profit' : opp.profit_percentage >= 0.5 ? 'Medium Profit' : 'Low Profit'}
+                  {(opp.profit_percentage ?? 0) >= 1 ? 'High Profit' : (opp.profit_percentage ?? 0) >= 0.5 ? 'Medium Profit' : 'Low Profit'}
                 </div>
               </div>
             </div>
